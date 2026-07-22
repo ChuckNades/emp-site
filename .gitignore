@@ -25,3 +25,6 @@ pnpm-debug.log*
 
 # runtime dir of another tool
 .codex-tmp/
+
+# playwright test output
+test-results/

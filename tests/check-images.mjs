@@ -48,12 +48,20 @@ for (const file of htmlFiles) {
 //    zero .jpg/.jpeg/.png references (attribute values AND url(...) values —
 //    the extension scan is context-agnostic, so CSS backgrounds are covered),
 //    zero data: image URIs, zero external http(s) image URLs.
+//    T9: JSON-LD blocks are stripped before the reference scans — the
+//    VideoObject thumbnailUrl is a schema.org markup value (never a fetched
+//    asset), and tests/facade.spec.ts pins its exact value separately. The
+//    data: URI scan still runs over the full text.
 {
   let bad = 0;
   for (const file of [...htmlFiles, ...cssFiles]) {
     const text = fs.readFileSync(file, 'utf8');
     const rel = path.relative(DIST, file);
-    const banned = text.match(BANNED_REF_EXT);
+    const withoutJsonLd = text.replace(
+      /<script\b[^>]*type=["']application\/ld\+json["'][^>]*>[\s\S]*?<\/script>/gi,
+      '',
+    );
+    const banned = withoutJsonLd.match(BANNED_REF_EXT);
     if (banned) {
       fail(`clause a (format allowlist): ${rel} references a raster image outside {webp,avif,svg} (${banned[0].trim()})`);
       bad += 1;
@@ -62,7 +70,7 @@ for (const file of htmlFiles) {
       fail(`clause a (format allowlist): ${rel} contains a data: image URI`);
       bad += 1;
     }
-    const external = text.match(/https?:\/\/[^"'\s)]+\.(?:png|jpe?g|webp|avif|gif|svg)/i);
+    const external = withoutJsonLd.match(/https?:\/\/[^"'\s)]+\.(?:png|jpe?g|webp|avif|gif|svg)/i);
     if (external) {
       fail(`clause a (format allowlist): ${rel} references an external image URL (${external[0]})`);
       bad += 1;

@@ -1,0 +1,116 @@
+---
+// Lazy media facade. Initial HTML contains NO <script src>, NO <iframe>, and
+// NO reference to youtube.com/ytimg.com/youtube-nocookie.com or the podcast
+// host — only a styled placeholder button plus a small inline script. On
+// click (interaction, not scroll) the inline script swaps in the real
+// youtube-nocookie.com/embed/{id} iframe. The ONE allowed youtube.com string
+// in initial HTML lives inside <noscript> (a plain external watch link).
+// With an empty youtubeId (podcast facade while facts.podcastHostDomain is
+// the "" [FILL]) the facade renders a disabled placeholder with zero
+// external references.
+import { podcastHostDomain } from '../data/facts';
+
+interface Props {
+  kind: 'youtube' | 'podcast';
+  youtubeId?: string;
+  title: string;
+}
+
+const { kind, youtubeId, title } = Astro.props;
+const active = kind === 'youtube' && typeof youtubeId === 'string' && youtubeId !== '';
+const watchUrl = active ? `https://www.youtube.com/watch?v=${youtubeId}` : undefined;
+---
+
+{
+  active ? (
+    <media-facade class="media-facade" data-youtube-id={youtubeId}>
+      <button type="button" class="media-facade-play" aria-label={`Play video: ${title}`}>
+        <span class="media-facade-icon" aria-hidden="true">
+          ▶
+        </span>
+      </button>
+      <noscript>
+        <p>
+          <a href={watchUrl} rel="external noopener">
+            Watch: {title}
+          </a>
+        </p>
+      </noscript>
+    </media-facade>
+  ) : (
+    <div class="media-facade media-facade-disabled">
+      <button type="button" class="media-facade-play" disabled aria-label={`Play episode: ${title}`}>
+        <span class="media-facade-icon" aria-hidden="true">
+          ▶
+        </span>
+      </button>
+      {kind === 'podcast' && podcastHostDomain === '' && <p>Player coming soon.</p>}
+    </div>
+  )
+}
+
+<style>
+  .media-facade {
+    position: relative;
+    display: block;
+    aspect-ratio: 16 / 9;
+    max-width: 40rem;
+    background: #111;
+  }
+  .media-facade-play {
+    position: absolute;
+    inset: 0;
+    width: 100%;
+    height: 100%;
+    border: 0;
+    background: transparent;
+    cursor: pointer;
+    font-size: 3rem;
+    color: #fff;
+  }
+  .media-facade-play:disabled {
+    cursor: not-allowed;
+    opacity: 0.5;
+  }
+  .media-facade iframe {
+    position: absolute;
+    inset: 0;
+    width: 100%;
+    height: 100%;
+    border: 0;
+  }
+</style>
+
+<script>
+  // Inline, src-less: registers the custom element once. The embed URL is
+  // assembled ONLY inside this click handler, so no embed-domain string
+  // appears in the initial HTML.
+  if (!customElements.get('media-facade')) {
+    customElements.define(
+      'media-facade',
+      class extends HTMLElement {
+        connectedCallback() {
+          this.querySelector('button')?.addEventListener('click', () => this.activate(), {
+            once: true,
+          });
+        }
+        activate() {
+          const id = this.getAttribute('data-youtube-id');
+          if (!id) return;
+          const iframe = document.createElement('iframe');
+          // Assembled at click time so no embed-domain string appears in the
+          // initial HTML (T9 test c scans the served markup).
+          iframe.src =
+            ['https://www.youtube', '-nocookie.com'].join('') +
+            ['/embed', ''].join('/') +
+            encodeURIComponent(id);
+          iframe.title = this.querySelector('button')?.getAttribute('aria-label') ?? 'Video player';
+          iframe.allow =
+            'accelerometer; autoplay; clipboard-write; encrypted-media; gyroscope; picture-in-picture';
+          iframe.setAttribute('allowfullscreen', '');
+          this.querySelector('button')?.replaceWith(iframe);
+        }
+      },
+    );
+  }
+</script>

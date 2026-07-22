@@ -17,4 +17,6 @@ export const PAGE_DATES: Record<string, string> = {
   [HUB_SLUGS.partners]: '2026-07-22',
   [HUB_SLUGS.originators]: '2026-07-22',
   '/faq/': '2026-07-22',
+  '/podcast/': '2026-07-22',
+  '/videos/': '2026-07-22',
 };

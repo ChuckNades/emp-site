@@ -1,0 +1,53 @@
+---
+// Video route: title + body + lazy YouTube facade for the entry's youtubeId,
+// plus VideoObject JSON-LD (embedUrl, never contentUrl).
+import { getCollection, render, type CollectionEntry } from 'astro:content';
+import Base from '../../layouts/Base.astro';
+import MediaFacade from '../../components/MediaFacade.astro';
+import { breadcrumbJsonLd, videoJsonLd, type JsonLd } from '../../lib/jsonld';
+
+export async function getStaticPaths() {
+  const videos = await getCollection('videos', ({ data }) =>
+    import.meta.env.PROD ? !data.draft : true,
+  );
+  return videos.map((video) => ({
+    params: { slug: video.data.slug },
+    props: { video },
+  }));
+}
+
+interface Props {
+  video: CollectionEntry<'videos'>;
+}
+
+const { video } = Astro.props;
+const { Content } = await render(video);
+
+const canonicalPath = `/videos/${video.data.slug}/`;
+
+const jsonLd: JsonLd[] = [
+  videoJsonLd({
+    name: video.data.title,
+    description: video.data.description,
+    youtubeId: video.data.youtubeId,
+    datePublished: video.data.datePublished,
+  }),
+  breadcrumbJsonLd([
+    { path: '/', label: 'Home' },
+    { path: '/videos/', label: 'Videos' },
+    { path: canonicalPath, label: video.data.title },
+  ]),
+];
+---
+
+<Base title={video.data.title} description={video.data.description}>
+  <nav aria-label="Breadcrumb">
+    <a href="/videos/">Videos</a>
+  </nav>
+  <article>
+    <h1>{video.data.title}</h1>
+    <MediaFacade kind="youtube" youtubeId={video.data.youtubeId} title={video.data.title} />
+    <Content />
+  </article>
+  <script slot="jsonld" type="application/ld+json" set:html={JSON.stringify(jsonLd)} />
+</Base>

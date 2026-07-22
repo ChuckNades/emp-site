@@ -1,0 +1,31 @@
+---
+// Podcast index: lists every non-draft shownotes entry (title + link).
+import { getCollection } from 'astro:content';
+import Base from '../../layouts/Base.astro';
+import { breadcrumbJsonLd } from '../../lib/jsonld';
+
+const episodes = await getCollection('shownotes', ({ data }) =>
+  import.meta.env.PROD ? !data.draft : true,
+);
+
+const jsonLd = [
+  breadcrumbJsonLd([
+    { path: '/', label: 'Home' },
+    { path: '/podcast/', label: 'Podcast' },
+  ]),
+];
+---
+
+<Base title="Podcast" description="Podcast">
+  <h1>Podcast</h1>
+  <ul>
+    {
+      episodes.map((episode) => (
+        <li>
+          <a href={`/podcast/${episode.data.slug}/`}>{episode.data.title}</a>
+        </li>
+      ))
+    }
+  </ul>
+  <script slot="jsonld" type="application/ld+json" set:html={JSON.stringify(jsonLd)} />
+</Base>

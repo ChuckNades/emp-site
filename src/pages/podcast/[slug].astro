@@ -1,0 +1,49 @@
+---
+// Podcast episode route: title + body + lazy podcast-player facade. The
+// facade only renders an interactive player when the entry carries a player
+// reference (youtubeId); while facts.podcastHostDomain is the "" [FILL] it
+// renders a disabled placeholder with zero external references.
+import { getCollection, render, type CollectionEntry } from 'astro:content';
+import Base from '../../layouts/Base.astro';
+import MediaFacade from '../../components/MediaFacade.astro';
+import { breadcrumbJsonLd, type JsonLd } from '../../lib/jsonld';
+
+export async function getStaticPaths() {
+  const episodes = await getCollection('shownotes', ({ data }) =>
+    import.meta.env.PROD ? !data.draft : true,
+  );
+  return episodes.map((episode) => ({
+    params: { slug: episode.data.slug },
+    props: { episode },
+  }));
+}
+
+interface Props {
+  episode: CollectionEntry<'shownotes'>;
+}
+
+const { episode } = Astro.props;
+const { Content } = await render(episode);
+
+const canonicalPath = `/podcast/${episode.data.slug}/`;
+
+const jsonLd: JsonLd[] = [
+  breadcrumbJsonLd([
+    { path: '/', label: 'Home' },
+    { path: '/podcast/', label: 'Podcast' },
+    { path: canonicalPath, label: episode.data.title },
+  ]),
+];
+---
+
+<Base title={episode.data.title} description={episode.data.description}>
+  <nav aria-label="Breadcrumb">
+    <a href="/podcast/">Podcast</a>
+  </nav>
+  <article>
+    <h1>{episode.data.title}</h1>
+    <MediaFacade kind="podcast" youtubeId={episode.data.youtubeId} title={episode.data.title} />
+    <Content />
+  </article>
+  <script slot="jsonld" type="application/ld+json" set:html={JSON.stringify(jsonLd)} />
+</Base>

@@ -19,6 +19,9 @@ const REQUIRED = {
   // fallback applied, so it is always present.
   Article: ['headline', 'author', 'datePublished', 'dateModified'],
   FAQPage: ['mainEntity'],
+  // T9: video pages — embedUrl is required and contentUrl must never appear
+  // (enforced in validatePage below).
+  VideoObject: ['name', 'thumbnailUrl', 'uploadDate', 'embedUrl'],
 };
 const EXPECTED_AREA_SERVED = ['AL', 'TN', 'MS'];
 
@@ -32,6 +35,12 @@ function isClusterPage(rel) {
   return (
     segments.length === 3 && HUB_ROUTE_PREFIXES.includes(segments[0]) && segments[2] === 'index.html'
   );
+}
+
+// T9: a video page is any /videos/<slug>/ page (never the /videos/ index).
+function isVideoPage(rel) {
+  const segments = rel.split(path.sep);
+  return segments.length === 3 && segments[0] === 'videos' && segments[2] === 'index.html';
 }
 
 function isFaqHubPage(rel) {
@@ -149,6 +158,19 @@ function validatePage(rel, html) {
       if (questionCount > 0 && entityCount === 0) {
         failures.push('FAQPage mainEntity must be nonempty when questions are rendered');
       }
+    }
+  }
+
+  // T9 video-page assertions: VideoObject present (required props checked
+  // above) and contentUrl never emitted — embeds only.
+  if (isVideoPage(rel)) {
+    const videos = nodes.filter((n) =>
+      (Array.isArray(n['@type']) ? n['@type'] : [n['@type']]).includes('VideoObject'),
+    );
+    if (videos.length === 0) {
+      failures.push('video page missing VideoObject JSON-LD');
+    } else if (videos.some((v) => 'contentUrl' in v)) {
+      failures.push('VideoObject must not emit contentUrl (embedUrl only)');
     }
   }
 

@@ -1,0 +1,31 @@
+---
+// Videos index: lists every non-draft videos collection entry (title + link).
+import { getCollection } from 'astro:content';
+import Base from '../../layouts/Base.astro';
+import { breadcrumbJsonLd } from '../../lib/jsonld';
+
+const videos = await getCollection('videos', ({ data }) =>
+  import.meta.env.PROD ? !data.draft : true,
+);
+
+const jsonLd = [
+  breadcrumbJsonLd([
+    { path: '/', label: 'Home' },
+    { path: '/videos/', label: 'Videos' },
+  ]),
+];
+---
+
+<Base title="Videos" description="Videos">
+  <h1>Videos</h1>
+  <ul>
+    {
+      videos.map((video) => (
+        <li>
+          <a href={`/videos/${video.data.slug}/`}>{video.data.title}</a>
+        </li>
+      ))
+    }
+  </ul>
+  <script slot="jsonld" type="application/ld+json" set:html={JSON.stringify(jsonLd)} />
+</Base>

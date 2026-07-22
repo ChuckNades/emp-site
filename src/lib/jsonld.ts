@@ -11,6 +11,7 @@ import type {
   Article,
   FAQPage,
   Question,
+  VideoObject,
   WithContext,
 } from 'schema-dts';
 import { getEntry } from 'astro:content';
@@ -25,7 +26,7 @@ import {
 import { SITE } from '../config/site';
 
 export type JsonLd = WithContext<
-  Organization | MortgageBroker | BreadcrumbList | ProfilePage | Person | Article | FAQPage
+  Organization | MortgageBroker | BreadcrumbList | ProfilePage | Person | Article | FAQPage | VideoObject
 >;
 
 export function organizationJsonLd(): WithContext<Organization> {
@@ -131,6 +132,28 @@ export async function articleJsonLd(input: ArticleInput): Promise<WithContext<Ar
     dateModified: input.dateModified ?? input.datePublished,
     author,
     mainEntityOfPage: new URL(input.path, SITE).href,
+  };
+}
+
+export interface VideoInput {
+  name: string;
+  description: string;
+  youtubeId: string;
+  datePublished: string;
+}
+
+// VideoObject JSON-LD for /videos/ pages. thumbnailUrl is a markup value
+// (never a fetched asset); embedUrl is emitted instead of contentUrl so the
+// page never references a direct media file.
+export function videoJsonLd(input: VideoInput): WithContext<VideoObject> {
+  return {
+    '@context': 'https://schema.org',
+    '@type': 'VideoObject',
+    name: input.name,
+    description: input.description,
+    thumbnailUrl: `https://i.ytimg.com/vi/${input.youtubeId}/hqdefault.jpg`,
+    uploadDate: input.datePublished,
+    embedUrl: `https://www.youtube-nocookie.com/embed/${input.youtubeId}`,
   };
 }
 
