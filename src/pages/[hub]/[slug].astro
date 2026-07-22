@@ -30,6 +30,21 @@ if (!category || Astro.params.slug !== Astro.props.post.data.slug) {
 const { post } = Astro.props;
 const { Content } = await render(post);
 
+// Related: sibling clusters of the owning lane (same `category`, non-draft,
+// self excluded). Collection-driven; every sibling is listed.
+const siblings = (
+  await getCollection(
+    'posts',
+    ({ data }) =>
+      (import.meta.env.PROD ? !data.draft : true) &&
+      data.category === category &&
+      data.slug !== post.data.slug,
+  )
+).map((sibling) => ({
+  href: `${HUB_SLUGS[category]}${sibling.data.slug}/`,
+  title: sibling.data.title,
+}));
+
 const canonicalPath = `${HUB_SLUGS[category]}${post.data.slug}/`;
 
 const jsonLd: JsonLd[] = [
@@ -51,9 +66,26 @@ if (post.data.faq && post.data.faq.length > 0) {
 ---
 
 <Base title={post.data.title} description={post.data.description}>
+  <nav aria-label="Breadcrumb">
+    <a href={HUB_SLUGS[category]}>{HUB_LABELS[category]}</a>
+  </nav>
   <article>
     <h1>{post.data.title}</h1>
     <Content />
   </article>
+  {
+    siblings.length > 0 && (
+      <nav aria-label="Related">
+        <h2>Related</h2>
+        <ul>
+          {siblings.map((sibling) => (
+            <li>
+              <a href={sibling.href}>{sibling.title}</a>
+            </li>
+          ))}
+        </ul>
+      </nav>
+    )
+  }
   <script slot="jsonld" type="application/ld+json" set:html={JSON.stringify(jsonLd)} />
 </Base>
