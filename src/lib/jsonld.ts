@@ -8,6 +8,9 @@ import type {
   ListItem,
   ProfilePage,
   Person,
+  Article,
+  FAQPage,
+  Question,
   WithContext,
 } from 'schema-dts';
 import { getEntry } from 'astro:content';
@@ -22,7 +25,7 @@ import {
 import { SITE } from '../config/site';
 
 export type JsonLd = WithContext<
-  Organization | MortgageBroker | BreadcrumbList | ProfilePage | Person
+  Organization | MortgageBroker | BreadcrumbList | ProfilePage | Person | Article | FAQPage
 >;
 
 export function organizationJsonLd(): WithContext<Organization> {
@@ -99,6 +102,52 @@ export async function profilePageJsonLd(path: string): Promise<WithContext<Profi
     '@context': 'https://schema.org',
     '@type': 'ProfilePage',
     url: new URL(path, SITE).href,
+    mainEntity,
+  };
+}
+
+export interface FaqPair {
+  question: string;
+  answer: string;
+}
+
+export interface ArticleInput {
+  headline: string;
+  datePublished: string;
+  dateModified?: string;
+  path: string;
+}
+
+// Article JSON-LD for cluster posts. dateModified falls back to datePublished
+// when the entry carries no explicit modified date; author is always the
+// people collection's pete entry.
+export async function articleJsonLd(input: ArticleInput): Promise<WithContext<Article>> {
+  const author = await personJsonLd();
+  return {
+    '@context': 'https://schema.org',
+    '@type': 'Article',
+    headline: input.headline,
+    datePublished: input.datePublished,
+    dateModified: input.dateModified ?? input.datePublished,
+    author,
+    mainEntityOfPage: new URL(input.path, SITE).href,
+  };
+}
+
+// FAQPage JSON-LD from question/answer pairs — used both by cluster articles
+// with embedded faq frontmatter and by the /faq/ hub (all non-draft entries).
+export function faqPageJsonLd(faqs: FaqPair[]): WithContext<FAQPage> {
+  const mainEntity: Question[] = faqs.map((faq) => ({
+    '@type': 'Question',
+    name: faq.question,
+    acceptedAnswer: {
+      '@type': 'Answer',
+      text: faq.answer,
+    },
+  }));
+  return {
+    '@context': 'https://schema.org',
+    '@type': 'FAQPage',
     mainEntity,
   };
 }

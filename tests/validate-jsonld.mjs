@@ -15,8 +15,28 @@ const REQUIRED = {
   BreadcrumbList: ['itemListElement'],
   ProfilePage: ['mainEntity'],
   Person: ['name', 'sameAs'],
+  // T6: cluster articles — dateModified is emitted with the datePublished
+  // fallback applied, so it is always present.
+  Article: ['headline', 'author', 'datePublished', 'dateModified'],
+  FAQPage: ['mainEntity'],
 };
 const EXPECTED_AREA_SERVED = ['AL', 'TN', 'MS'];
+
+// Hub route prefixes (first path segment) for the T6 cluster-page checks.
+// Kept in sync with src/config/hubs.ts — the validator is plain .mjs and
+// cannot import the TS map.
+const HUB_ROUTE_PREFIXES = ['learn', 'grow', 'become'];
+
+function isClusterPage(rel) {
+  const segments = rel.split(path.sep);
+  return (
+    segments.length === 3 && HUB_ROUTE_PREFIXES.includes(segments[0]) && segments[2] === 'index.html'
+  );
+}
+
+function isFaqHubPage(rel) {
+  return rel === path.join('faq', 'index.html');
+}
 
 async function* walk(dir) {
   for (const entry of await readdir(dir, { withFileTypes: true })) {
@@ -75,7 +95,59 @@ function validatePage(rel, html) {
           if (actual !== JSON.stringify(EXPECTED_AREA_SERVED)) {
             failures.push(`MortgageBroker areaServed must equal ["AL","TN","MS"], got ${actual}`);
           }
+        } else if (type === 'FAQPage' && prop === 'mainEntity') {
+          // Nonempty is enforced on the /faq/ hub below; an embedded-article
+          // FAQPage is only emitted when the post carries faq pairs, and a
+          // clean-repo /faq/ hub legitimately has zero entries.
+          if (!Array.isArray(node[prop])) {
+            failures.push('FAQPage mainEntity must be an array');
+          }
         }
+      }
+    }
+  }
+
+  // T6 cluster-page assertions: Article + BreadcrumbList present (required
+  // props checked above), and the canonical link equals the owning-hub URL —
+  // i.e. the page's own path under its hub prefix.
+  if (isClusterPage(rel)) {
+    const articles = nodes.filter((n) =>
+      (Array.isArray(n['@type']) ? n['@type'] : [n['@type']]).includes('Article'),
+    );
+    if (articles.length === 0) failures.push('cluster page missing Article JSON-LD');
+    const breadcrumbs = nodes.filter((n) =>
+      (Array.isArray(n['@type']) ? n['@type'] : [n['@type']]).includes('BreadcrumbList'),
+    );
+    if (breadcrumbs.length === 0) failures.push('cluster page missing BreadcrumbList JSON-LD');
+    if (canonicals.length === 1) {
+      const href = canonicals[0].match(/href=["']([^"']*)["']/i)?.[1];
+      const expectedPath = `/${rel.split(path.sep).slice(0, 2).join('/')}/`;
+      if (!href || new URL(href).pathname !== expectedPath) {
+        failures.push(`canonical must equal the owning-hub URL "${expectedPath}", got "${href}"`);
+      }
+    }
+  }
+
+  // T6 /faq/ hub assertion: FAQPage mainEntity count equals the number of
+  // visibly rendered questions (h2 elements in <main>). When questions are
+  // rendered, mainEntity must be nonempty (it is, by the equality).
+  if (isFaqHubPage(rel)) {
+    const faqPages = nodes.filter((n) =>
+      (Array.isArray(n['@type']) ? n['@type'] : [n['@type']]).includes('FAQPage'),
+    );
+    if (faqPages.length === 0) {
+      failures.push('/faq/ missing FAQPage JSON-LD');
+    } else {
+      const rendered = html.match(/<main>[\s\S]*?<\/main>/i)?.[0] ?? '';
+      const questionCount = (rendered.match(/<h2[\s>]/gi) ?? []).length;
+      const entityCount = Array.isArray(faqPages[0].mainEntity) ? faqPages[0].mainEntity.length : 0;
+      if (entityCount !== questionCount) {
+        failures.push(
+          `FAQPage mainEntity count (${entityCount}) must equal rendered question count (${questionCount})`,
+        );
+      }
+      if (questionCount > 0 && entityCount === 0) {
+        failures.push('FAQPage mainEntity must be nonempty when questions are rendered');
       }
     }
   }

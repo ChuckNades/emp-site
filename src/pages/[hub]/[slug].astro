@@ -1,0 +1,59 @@
+---
+// Cluster article route: one canonical route per post, under its OWNING hub
+// (from `category`). alsoRelevantTo only cross-lists the post on other hubs —
+// it never creates a second route. Slugs resolve through src/config/hubs.ts.
+import { getCollection, render, type CollectionEntry } from 'astro:content';
+import Base from '../../layouts/Base.astro';
+import { articleJsonLd, breadcrumbJsonLd, faqPageJsonLd, type JsonLd } from '../../lib/jsonld';
+import { HUB_LABELS, HUB_PARAMS, HUB_SLUGS, hubCategoryForParam } from '../../config/hubs';
+
+export async function getStaticPaths() {
+  const posts = await getCollection('posts', ({ data }) =>
+    import.meta.env.PROD ? !data.draft : true,
+  );
+  return posts.map((post) => ({
+    params: { hub: HUB_PARAMS[post.data.category], slug: post.data.slug },
+    props: { post },
+  }));
+}
+
+interface Props {
+  post: CollectionEntry<'posts'>;
+}
+
+// Only hub params resolve to a category; anything else is not an article route.
+const category = hubCategoryForParam(Astro.params.hub);
+if (!category || Astro.params.slug !== Astro.props.post.data.slug) {
+  return new Response(null, { status: 404 });
+}
+
+const { post } = Astro.props;
+const { Content } = await render(post);
+
+const canonicalPath = `${HUB_SLUGS[category]}${post.data.slug}/`;
+
+const jsonLd: JsonLd[] = [
+  await articleJsonLd({
+    headline: post.data.title,
+    datePublished: post.data.datePublished,
+    dateModified: post.data.dateModified,
+    path: canonicalPath,
+  }),
+  breadcrumbJsonLd([
+    { path: '/', label: 'Home' },
+    { path: HUB_SLUGS[category], label: HUB_LABELS[category] },
+    { path: canonicalPath, label: post.data.title },
+  ]),
+];
+if (post.data.faq && post.data.faq.length > 0) {
+  jsonLd.push(faqPageJsonLd(post.data.faq));
+}
+---
+
+<Base title={post.data.title} description={post.data.description}>
+  <article>
+    <h1>{post.data.title}</h1>
+    <Content />
+  </article>
+  <script slot="jsonld" type="application/ld+json" set:html={JSON.stringify(jsonLd)} />
+</Base>

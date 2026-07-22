@@ -1,0 +1,54 @@
+---
+// Pillar hub pages: one route per hub in the hubs map. Slugs, params, and
+// labels all come from src/config/hubs.ts — nothing is hardcoded here.
+import { getCollection } from 'astro:content';
+import Base from '../../layouts/Base.astro';
+import { breadcrumbJsonLd } from '../../lib/jsonld';
+import { HUB_CATEGORIES, HUB_LABELS, HUB_PARAMS, HUB_SLUGS, type HubCategory } from '../../config/hubs';
+
+export function getStaticPaths() {
+  return HUB_CATEGORIES.map((category) => ({
+    params: { hub: HUB_PARAMS[category] },
+    props: { category },
+  }));
+}
+
+interface Props {
+  category: HubCategory;
+}
+
+const { category } = Astro.props;
+const label = HUB_LABELS[category];
+const hubPath = HUB_SLUGS[category];
+
+// A post belongs on this hub when its owning category OR its alsoRelevantTo
+// includes this hub's key. Cross-listed posts still link to their canonical
+// owning-hub URL. Drafts are excluded in production builds.
+const posts = await getCollection(
+  'posts',
+  ({ data }) =>
+    (import.meta.env.PROD ? !data.draft : true) &&
+    (data.category === category || (data.alsoRelevantTo ?? []).includes(category)),
+);
+
+const jsonLd = [
+  breadcrumbJsonLd([
+    { path: '/', label: 'Home' },
+    { path: hubPath, label },
+  ]),
+];
+---
+
+<Base title={label} description={label}>
+  <h1>{label}</h1>
+  <ul>
+    {
+      posts.map((post) => (
+        <li>
+          <a href={`${HUB_SLUGS[post.data.category]}${post.data.slug}/`}>{post.data.title}</a>
+        </li>
+      ))
+    }
+  </ul>
+  <script slot="jsonld" type="application/ld+json" set:html={JSON.stringify(jsonLd)} />
+</Base>

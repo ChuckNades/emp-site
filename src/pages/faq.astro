@@ -1,0 +1,32 @@
+---
+// FAQ hub: every non-draft faqs collection entry rendered visibly (question +
+// answer), plus ONE FAQPage JSON-LD with all Q/A pairs as mainEntity.
+import { getCollection } from 'astro:content';
+import Base from '../layouts/Base.astro';
+import { breadcrumbJsonLd, faqPageJsonLd } from '../lib/jsonld';
+
+const faqs = await getCollection('faqs', ({ data }) =>
+  import.meta.env.PROD ? !data.draft : true,
+);
+
+const jsonLd = [
+  breadcrumbJsonLd([
+    { path: '/', label: 'Home' },
+    { path: '/faq/', label: 'FAQ' },
+  ]),
+  faqPageJsonLd(faqs.map((faq) => faq.data)),
+];
+---
+
+<Base title="FAQ" description="FAQ">
+  <h1>FAQ</h1>
+  {
+    faqs.map((faq) => (
+      <section>
+        <h2>{faq.data.question}</h2>
+        <p>{faq.data.answer}</p>
+      </section>
+    ))
+  }
+  <script slot="jsonld" type="application/ld+json" set:html={JSON.stringify(jsonLd)} />
+</Base>

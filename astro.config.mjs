@@ -12,7 +12,7 @@ import { PAGE_DATES } from './src/config/page-dates';
 // resolve per-entry lastmod dates. Only the fields the hook needs are
 // extracted: slug, draft, dateModified, datePublished.
 function frontmatterValue(/** @type {string} */ raw, /** @type {string} */ key) {
-  const m = raw.match(new RegExp(`^${key}:[[:space:]]*"?([^"\\n]*)"?[[:space:]]*$`, 'm'));
+  const m = raw.match(new RegExp(`^${key}:\\s*"?([^"\\n]*)"?\\s*$`, 'm'));
   return m ? m[1] : undefined;
 }
 
