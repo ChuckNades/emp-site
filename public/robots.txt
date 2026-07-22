@@ -1,0 +1,4 @@
+User-agent: *
+Allow: /
+
+Sitemap: https://expertmortgagepro.com/sitemap-index.xml
