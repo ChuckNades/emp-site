@@ -9,6 +9,7 @@
     "preview": "astro preview",
     "test:t2": "bash tests/run-t2.sh",
     "test:t4": "bash tests/run-t4.sh",
+    "test:t5": "bash tests/run-t5.sh",
     "test:jsonld": "node tests/validate-jsonld.mjs"
   },
   "dependencies": {

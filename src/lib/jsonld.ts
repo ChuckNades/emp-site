@@ -45,6 +45,20 @@ export function mortgageBrokerJsonLd(): WithContext<MortgageBroker> {
   };
 }
 
+// Per-hub variant for the city hub pages: address comes from the hub's own
+// facts field (empty-safe — an empty [FILL] renders as an empty string, never
+// invented); areaServed is always exactly the licensure states.
+export function hubMortgageBrokerJsonLd(address: string): WithContext<MortgageBroker> {
+  return {
+    '@context': 'https://schema.org',
+    '@type': 'MortgageBroker',
+    name: legalName,
+    url: SITE,
+    address,
+    areaServed: [...licensureStates],
+  };
+}
+
 export interface BreadcrumbEntry {
   path: string;
   label: string;

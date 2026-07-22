@@ -1,0 +1,34 @@
+---
+import Base from '../layouts/Base.astro';
+import { hubMortgageBrokerJsonLd, breadcrumbJsonLd } from '../lib/jsonld';
+import { birminghamAddress } from '../data/facts';
+import { HUB_SLUGS } from '../config/hubs';
+
+const jsonLd = [
+  hubMortgageBrokerJsonLd(birminghamAddress),
+  breadcrumbJsonLd([
+    { path: '/', label: 'Home' },
+    { path: '/birmingham/', label: 'Birmingham' },
+  ]),
+];
+---
+
+<Base title="Birmingham" description="Birmingham hub">
+  <h1>Birmingham</h1>
+  <section aria-labelledby="office">
+    <h2 id="office">Office</h2>
+    <p>{birminghamAddress}</p>
+  </section>
+  <section aria-labelledby="hoover">
+    <h2 id="hoover">Hoover</h2>
+    <!-- Structural slot: Hoover content is authored later. -->
+  </section>
+  <section aria-labelledby="resources">
+    <h2 id="resources">Resources</h2>
+    <ul>
+      <li><a href={HUB_SLUGS.learn}>Learn</a></li>
+      <li><a href={HUB_SLUGS.partners}>Grow</a></li>
+    </ul>
+  </section>
+  <script slot="jsonld" type="application/ld+json" set:html={JSON.stringify(jsonLd)} />
+</Base>

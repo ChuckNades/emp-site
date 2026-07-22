@@ -1,0 +1,25 @@
+---
+import Base from '../layouts/Base.astro';
+import { breadcrumbJsonLd } from '../lib/jsonld';
+import { licensureStatement, nmls } from '../data/facts';
+
+const jsonLd = [
+  breadcrumbJsonLd([
+    { path: '/', label: 'Home' },
+    { path: '/tennessee/', label: 'Tennessee' },
+  ]),
+];
+---
+
+<Base title="Tennessee" description="Tennessee">
+  <h1>Tennessee</h1>
+  <p id="licensure">{licensureStatement}</p>
+  <p id="nmls">{nmls}</p>
+  <nav aria-label="City hubs">
+    <ul>
+      <li><a href="/huntsville/">Huntsville</a></li>
+      <li><a href="/birmingham/">Birmingham</a></li>
+    </ul>
+  </nav>
+  <script slot="jsonld" type="application/ld+json" set:html={JSON.stringify(jsonLd)} />
+</Base>

@@ -1,0 +1,34 @@
+---
+import Base from '../layouts/Base.astro';
+import { hubMortgageBrokerJsonLd, breadcrumbJsonLd } from '../lib/jsonld';
+import { huntsvilleAddress } from '../data/facts';
+import { HUB_SLUGS } from '../config/hubs';
+
+const jsonLd = [
+  hubMortgageBrokerJsonLd(huntsvilleAddress),
+  breadcrumbJsonLd([
+    { path: '/', label: 'Home' },
+    { path: '/huntsville/', label: 'Huntsville' },
+  ]),
+];
+---
+
+<Base title="Huntsville" description="Huntsville hub">
+  <h1>Huntsville</h1>
+  <section aria-labelledby="office">
+    <h2 id="office">Office</h2>
+    <p>{huntsvilleAddress}</p>
+  </section>
+  <section aria-labelledby="market">
+    <h2 id="market">Huntsville Market</h2>
+    <p><a href="/market/huntsville/">Huntsville market</a></p>
+  </section>
+  <section aria-labelledby="resources">
+    <h2 id="resources">Resources</h2>
+    <ul>
+      <li><a href={HUB_SLUGS.learn}>Learn</a></li>
+      <li><a href={HUB_SLUGS.partners}>Grow</a></li>
+    </ul>
+  </section>
+  <script slot="jsonld" type="application/ld+json" set:html={JSON.stringify(jsonLd)} />
+</Base>
