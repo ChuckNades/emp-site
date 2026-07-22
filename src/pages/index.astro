@@ -1,1 +1,11 @@
-<h1>EMP</h1>
+---
+import Base from '../layouts/Base.astro';
+import { organizationJsonLd, mortgageBrokerJsonLd } from '../lib/jsonld';
+
+const jsonLd = [organizationJsonLd(), mortgageBrokerJsonLd()];
+---
+
+<Base title="EMP" description="Expert Mortgage Pro">
+  <h1>EMP</h1>
+  <script slot="jsonld" type="application/ld+json" set:html={JSON.stringify(jsonLd)} />
+</Base>

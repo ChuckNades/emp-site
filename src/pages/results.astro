@@ -1,0 +1,17 @@
+---
+import Base from '../layouts/Base.astro';
+import { breadcrumbJsonLd } from '../lib/jsonld';
+
+const jsonLd = [
+  breadcrumbJsonLd([
+    { path: '/', label: 'Home' },
+    { path: '/results/', label: 'Results' },
+  ]),
+];
+---
+
+<Base title="Results" description="Results">
+  <h1>Results</h1>
+  <p>Results are being compiled.</p>
+  <script slot="jsonld" type="application/ld+json" set:html={JSON.stringify(jsonLd)} />
+</Base>

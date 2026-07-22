@@ -1,0 +1,19 @@
+---
+import Base from '../layouts/Base.astro';
+import { profilePageJsonLd, personJsonLd, breadcrumbJsonLd } from '../lib/jsonld';
+
+const jsonLd = [
+  await profilePageJsonLd('/about/'),
+  await personJsonLd(),
+  breadcrumbJsonLd([
+    { path: '/', label: 'Home' },
+    { path: '/about/', label: 'About' },
+  ]),
+];
+---
+
+<Base title="About" description="About EMP">
+  <h1>About</h1>
+  <section aria-label="Bio"></section>
+  <script slot="jsonld" type="application/ld+json" set:html={JSON.stringify(jsonLd)} />
+</Base>

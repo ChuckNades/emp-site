@@ -7,13 +7,15 @@
     "dev": "astro dev",
     "build": "astro build",
     "preview": "astro preview",
-    "test:t2": "bash tests/run-t2.sh"
+    "test:t2": "bash tests/run-t2.sh",
+    "test:jsonld": "node tests/validate-jsonld.mjs"
   },
   "dependencies": {
     "@astrojs/mdx": "^4.3.14",
     "astro": "5.18.2"
   },
   "devDependencies": {
+    "schema-dts": "^2.0.0",
     "typescript": "^5.9.3"
   }
 }

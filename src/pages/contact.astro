@@ -1,0 +1,31 @@
+---
+import Base from '../layouts/Base.astro';
+import { mortgageBrokerJsonLd, breadcrumbJsonLd } from '../lib/jsonld';
+import {
+  nmls,
+  nmlsConsumerAccessUrl,
+  huntsvilleAddress,
+  birminghamAddress,
+  licensureStatement,
+  licensureStates,
+} from '../data/facts';
+
+const jsonLd = [
+  mortgageBrokerJsonLd(),
+  breadcrumbJsonLd([
+    { path: '/', label: 'Home' },
+    { path: '/contact/', label: 'Contact' },
+  ]),
+];
+---
+
+<Base title="Contact" description="Contact EMP">
+  <h1>Contact</h1>
+  {huntsvilleAddress && <p>{huntsvilleAddress}</p>}
+  {birminghamAddress && <p>{birminghamAddress}</p>}
+  {licensureStatement && <p>{licensureStatement}</p>}
+  <p>Licensed in {licensureStates.join(', ')}</p>
+  <p>NMLS {nmls}</p>
+  <p><a href={nmlsConsumerAccessUrl}>NMLS Consumer Access</a></p>
+  <script slot="jsonld" type="application/ld+json" set:html={JSON.stringify(jsonLd)} />
+</Base>
