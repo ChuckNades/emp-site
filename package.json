@@ -6,9 +6,11 @@
   "scripts": {
     "dev": "astro dev",
     "build": "astro build",
-    "preview": "astro preview"
+    "preview": "astro preview",
+    "test:t2": "bash tests/run-t2.sh"
   },
   "dependencies": {
+    "@astrojs/mdx": "^4.3.14",
     "astro": "5.18.2"
   },
   "devDependencies": {
