@@ -2,6 +2,7 @@
 // Base layout: semantic HTML5 shell + SEO head. Neutral minimal styling only —
 // the identity system lands in a later task (T15b).
 import { SITE } from '../config/site';
+import { HUB_CATEGORIES, HUB_SLUGS, HUB_LABELS } from '../config/hubs';
 
 interface Props {
   title: string;
@@ -10,6 +11,21 @@ interface Props {
 
 const { title, description } = Astro.props;
 const canonicalUrl = new URL(Astro.url.pathname, SITE).href;
+
+// Flat global nav; hub labels/paths resolve through hubs.ts (zero slug literals).
+const NAV_LINKS = [
+  { href: '/', label: 'Home' },
+  ...HUB_CATEGORIES.map((category) => ({
+    href: HUB_SLUGS[category],
+    label: HUB_LABELS[category],
+  })),
+  { href: '/faq/', label: 'FAQ' },
+  { href: '/huntsville/', label: 'Huntsville' },
+  { href: '/birmingham/', label: 'Birmingham' },
+  { href: '/about/', label: 'About' },
+  { href: '/results/', label: 'Results' },
+  { href: '/contact/', label: 'Contact' },
+];
 ---
 
 <!doctype html>
@@ -30,10 +46,9 @@ const canonicalUrl = new URL(Astro.url.pathname, SITE).href;
     <header>
       <nav>
         <ul>
-          <li><a href="/">Home</a></li>
-          <li><a href="/about/">About</a></li>
-          <li><a href="/results/">Results</a></li>
-          <li><a href="/contact/">Contact</a></li>
+          {NAV_LINKS.map(({ href, label }) => (
+            <li><a href={href}>{label}</a></li>
+          ))}
         </ul>
       </nav>
     </header>

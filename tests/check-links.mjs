@@ -1,7 +1,9 @@
 // T7 — internal-link contract, floor not ceiling.
-// Walks dist/ and asserts the six floor items from T7-TASK.md. Cross-lane
-// links are permitted everywhere and never flagged; only the minimums below
-// and broken links are checked. Exits nonzero on the first failing floor.
+// Walks dist/ and asserts the floor items from T7-TASK.md (1–6) plus the T6b
+// additions (7–9: home lane section, global nav, home <main> structure).
+// Cross-lane links are permitted everywhere and never flagged; only the
+// minimums below and broken links are checked. Exits nonzero on the first
+// failing floor.
 import fs from 'node:fs';
 import path from 'node:path';
 import { pathToFileURL } from 'node:url';
@@ -270,6 +272,78 @@ const hrefsWithText = (html, text) => {
     }
   }
   if (bad === 0) pass('floor 6: zero broken internal links in dist/ (fragments resolve to existing ids)');
+}
+
+// --- T6b additions: home lane-routing + global nav floors (scoped selectors,
+//     never whole-page grep).
+
+// Inner HTML of the first match of a paired tag (e.g. 'main', 'nav').
+const innerOf = (html, tag) => html.match(new RegExp(`<${tag}[^>]*>([\\s\\S]*?)</${tag}>`, 'i'))?.[1] ?? '';
+
+// 7. Home's lane section (the single <section> inside <main>) contains links
+//    to all three hubs (slugs resolved through hubs.ts).
+{
+  const html = htmlByRoute.get('/');
+  if (!html) {
+    fail('floor 7 (home lane section): / missing from dist/');
+  } else {
+    const section = innerOf(innerOf(html, 'main'), 'section');
+    const hrefs = hrefsOf(section);
+    const missing = CATEGORIES.filter((category) => !hrefs.includes(hubPath(category)));
+    if (missing.length > 0) {
+      fail(`floor 7 (home lane section): missing hub link(s) for ${missing.join(', ')}`);
+    } else {
+      pass('floor 7: home lane section links to all three hubs');
+    }
+  }
+}
+
+// 8. The <nav> element on every page contains links to all three hubs and
+//    /faq/.
+{
+  let bad = 0;
+  for (const [route, html] of htmlByRoute) {
+    const hrefs = hrefsOf(innerOf(html, 'nav'));
+    for (const target of [...CATEGORIES.map(hubPath), '/faq/']) {
+      if (!hrefs.includes(target)) {
+        fail(`floor 8 (global nav): ${route} <nav> does not link to ${target}`);
+        bad += 1;
+      }
+    }
+  }
+  if (bad === 0) pass('floor 8: every page <nav> links to all three hubs and /faq/');
+}
+
+// 9. Home's <main> contains exactly one <h1> and one <section> and no other
+//    element types besides those and their children.
+{
+  const html = htmlByRoute.get('/');
+  if (!html) {
+    fail('floor 9 (home <main> structure): / missing from dist/');
+  } else {
+    const main = innerOf(html, 'main');
+    const h1Count = (main.match(/<h1[\s>]/gi) ?? []).length;
+    const sectionCount = (main.match(/<section[\s>]/gi) ?? []).length;
+    if (h1Count !== 1 || sectionCount !== 1) {
+      fail(`floor 9 (home <main> structure): expected 1 <h1> and 1 <section>, found ${h1Count} and ${sectionCount}`);
+    } else {
+      const section = innerOf(main, 'section');
+      const outside = main
+        .replace(/<h1[^>]*>[\s\S]*?<\/h1>/i, '')
+        .replace(/<section[^>]*>[\s\S]*?<\/section>/i, '');
+      const extraTags = [...outside.matchAll(/<([a-zA-Z][a-zA-Z0-9]*)/g)].map((m) => m[1]);
+      const childless = /^[^<]*$/.test(section.replace(/<\/?(?:ul|li|a)(\s[^>]*)?>/gi, ''));
+      if (extraTags.length > 0 || !childless) {
+        fail(
+          `floor 9 (home <main> structure): unexpected element(s)` +
+            (extraTags.length > 0 ? ` outside h1/section: ${[...new Set(extraTags)].join(', ')}` : '') +
+            (!childless ? ' inside <section> beyond ul/li/a' : ''),
+        );
+      } else {
+        pass('floor 9: home <main> is exactly one <h1> plus one <section> (children only inside them)');
+      }
+    }
+  }
 }
 
 if (failed) {

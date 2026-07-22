@@ -1,11 +1,26 @@
 ---
 import Base from '../layouts/Base.astro';
+import { HUB_SLUGS, HUB_LABELS } from '../config/hubs';
 import { organizationJsonLd, mortgageBrokerJsonLd } from '../lib/jsonld';
 
 const jsonLd = [organizationJsonLd(), mortgageBrokerJsonLd()];
+
+// Lane-routing links: hub label + ratified lane descriptor, paths via hubs.ts.
+const LANES = [
+  { href: HUB_SLUGS.learn, label: HUB_LABELS.learn, descriptor: 'For homebuyers' },
+  { href: HUB_SLUGS.partners, label: HUB_LABELS.partners, descriptor: 'For referral partners' },
+  { href: HUB_SLUGS.originators, label: HUB_LABELS.originators, descriptor: 'For originators' },
+];
 ---
 
 <Base title="EMP" description="Expert Mortgage Pro">
   <h1>EMP</h1>
+  <section>
+    <ul>
+      {LANES.map(({ href, label, descriptor }) => (
+        <li><a href={href}>{label}</a> — {descriptor}</li>
+      ))}
+    </ul>
+  </section>
   <script slot="jsonld" type="application/ld+json" set:html={JSON.stringify(jsonLd)} />
 </Base>
