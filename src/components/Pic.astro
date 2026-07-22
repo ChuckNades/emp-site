@@ -1,0 +1,28 @@
+---
+// Reusable content-image component: wraps astro:assets <Picture /> so every
+// content image goes through the sharp pipeline and ships as AVIF + WebP
+// (PNG/JPEG fallback) with explicit width/height (no CLS), lazy loading, and
+// async decoding by default.
+import { Picture } from 'astro:assets';
+import type { ImageMetadata } from 'astro';
+
+interface Props {
+  src: ImageMetadata;
+  alt: string; // required — accessibility text
+  widths?: number[];
+  sizes?: string;
+}
+
+const { src, alt, widths, sizes } = Astro.props;
+---
+
+<Picture
+  src={src}
+  alt={alt}
+  formats={['avif', 'webp']}
+  fallbackFormat="webp"
+  widths={widths}
+  sizes={sizes}
+  loading="lazy"
+  decoding="async"
+/>
