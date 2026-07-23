@@ -1,5 +1,6 @@
 ---
 import Base from '../layouts/Base.astro';
+import ToolIsland from '../components/ToolIsland.astro';
 import { serializeJsonLd, hubMortgageBrokerJsonLd, breadcrumbJsonLd } from '../lib/jsonld';
 import { huntsvilleAddress } from '../data/facts';
 import { HUB_SLUGS } from '../config/hubs';
@@ -23,6 +24,7 @@ const jsonLd = [
     <h2 id="market">Huntsville Market</h2>
     <p><a href="/market/huntsville/">Huntsville market</a></p>
   </section>
+  <ToolIsland />
   <section aria-labelledby="resources">
     <h2 id="resources">Resources</h2>
     <ul>

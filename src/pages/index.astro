@@ -1,5 +1,6 @@
 ---
 import Base from '../layouts/Base.astro';
+import ToolIsland from '../components/ToolIsland.astro';
 import { HUB_SLUGS, HUB_LABELS } from '../config/hubs';
 import { serializeJsonLd, organizationJsonLd, mortgageBrokerJsonLd } from '../lib/jsonld';
 
@@ -22,5 +23,6 @@ const LANES = [
       ))}
     </ul>
   </section>
+  <ToolIsland />
   <script slot="jsonld" type="application/ld+json" set:html={serializeJsonLd(jsonLd)} />
 </Base>

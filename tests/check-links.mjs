@@ -283,20 +283,29 @@ const hrefsWithText = (html, text) => {
 }
 
 // --- T6b additions: home lane-routing + global nav floors (scoped selectors,
-//     never whole-page grep).
+//     never whole-page grep). T13 amended the home-exactness floor: home's
+//     <main> is now h1 + lane section + the ONE tool-island section
+//     ([data-tool-island]).
 
 // Inner HTML of the first match of a paired tag (e.g. 'main', 'nav').
 const innerOf = (html, tag) => html.match(new RegExp(`<${tag}[^>]*>([\\s\\S]*?)</${tag}>`, 'i'))?.[1] ?? '';
 
-// 7. Home's lane section (the single <section> inside <main>) contains links
+// Inner HTML of the first <section> whose opening tag carries `attr`
+// (e.g. 'data-tool-island'). Nested <section>s are not used on the checked
+// pages, so a lazy match to the next </section> is exact here.
+const innerOfSectionWith = (html, attr) =>
+  html.match(new RegExp(`<section\\b[^>]*\\b${attr}\\b[^>]*>([\\s\\S]*?)</section>`, 'i'))?.[1] ?? '';
+
+// 7. Home's lane section (the <section> inside <main> WITHOUT
+//    data-tool-island — T13 added a second, island section) contains links
 //    to all three hubs (slugs resolved through hubs.ts).
 {
   const html = htmlByRoute.get('/');
   if (!html) {
     fail('floor 7 (home lane section): / missing from dist/');
   } else {
-    const section = innerOf(innerOf(html, 'main'), 'section');
-    const hrefs = hrefsOf(section);
+    const laneSection = innerOf(innerOf(html, 'main'), 'section');
+    const hrefs = hrefsOf(laneSection);
     const missing = CATEGORIES.filter((category) => !hrefs.includes(hubPath(category)));
     if (missing.length > 0) {
       fail(`floor 7 (home lane section): missing hub link(s) for ${missing.join(', ')}`);
@@ -328,8 +337,11 @@ const innerOf = (html, tag) => html.match(new RegExp(`<${tag}[^>]*>([\\s\\S]*?)<
   if (bad === 0) pass('floor 8: every page <nav> links to all three hubs and /faq/ and has aria-label="Main"');
 }
 
-// 9. Home's <main> contains exactly one <h1> and one <section> and no other
-//    element types besides those and their children.
+// 9. Home's <main> contains exactly one <h1>, one lane <section>, and the ONE
+//    T13 tool-island <section data-tool-island> — and no other element types
+//    besides those, their children, and the ONE bundled island <script> that
+//    Astro emits where the island component is used (T13-amended
+//    home-exactness floor).
 {
   const html = htmlByRoute.get('/');
   if (!html) {
@@ -338,23 +350,34 @@ const innerOf = (html, tag) => html.match(new RegExp(`<${tag}[^>]*>([\\s\\S]*?)<
     const main = innerOf(html, 'main');
     const h1Count = (main.match(/<h1[\s>]/gi) ?? []).length;
     const sectionCount = (main.match(/<section[\s>]/gi) ?? []).length;
-    if (h1Count !== 1 || sectionCount !== 1) {
-      fail(`floor 9 (home <main> structure): expected 1 <h1> and 1 <section>, found ${h1Count} and ${sectionCount}`);
+    const islandCount = (main.match(/<section\b[^>]*\bdata-tool-island\b/gi) ?? []).length;
+    if (h1Count !== 1 || sectionCount !== 2 || islandCount !== 1) {
+      fail(
+        `floor 9 (home <main> structure): expected 1 <h1>, 2 <section> of which 1 is the tool island,` +
+          ` found ${h1Count} <h1>, ${sectionCount} <section>, ${islandCount} island`,
+      );
     } else {
-      const section = innerOf(main, 'section');
+      const laneSection = innerOf(main, 'section');
+      const islandSection = innerOfSectionWith(main, 'data-tool-island');
       const outside = main
         .replace(/<h1[^>]*>[\s\S]*?<\/h1>/i, '')
-        .replace(/<section[^>]*>[\s\S]*?<\/section>/i, '');
+        .replace(/<section\b(?![^>]*\bdata-tool-island\b)[^>]*>[\s\S]*?<\/section>/i, '')
+        .replace(/<section\b[^>]*\bdata-tool-island\b[^>]*>[\s\S]*?<\/section>/i, '')
+        .replace(/<script\b[^>]*>[\s\S]*?<\/script>/i, ''); // the ONE bundled island script
       const extraTags = [...outside.matchAll(/<([a-zA-Z][a-zA-Z0-9]*)/g)].map((m) => m[1]);
-      const childless = /^[^<]*$/.test(section.replace(/<\/?(?:ul|li|a)(\s[^>]*)?>/gi, ''));
-      if (extraTags.length > 0 || !childless) {
+      const laneClean = /^[^<]*$/.test(laneSection.replace(/<\/?(?:ul|li|a)(\s[^>]*)?>/gi, ''));
+      const islandClean = /^[^<]*$/.test(
+        islandSection.replace(/<\/?(?:h2|form|div|label|input|button|p)(\s[^>]*)?>/gi, ''),
+      );
+      if (extraTags.length > 0 || !laneClean || !islandClean) {
         fail(
           `floor 9 (home <main> structure): unexpected element(s)` +
-            (extraTags.length > 0 ? ` outside h1/section: ${[...new Set(extraTags)].join(', ')}` : '') +
-            (!childless ? ' inside <section> beyond ul/li/a' : ''),
+            (extraTags.length > 0 ? ` outside h1/sections: ${[...new Set(extraTags)].join(', ')}` : '') +
+            (!laneClean ? ' inside the lane <section> beyond ul/li/a' : '') +
+            (!islandClean ? ' inside the island <section> beyond h2/form/div/label/input/button/p' : ''),
         );
       } else {
-        pass('floor 9: home <main> is exactly one <h1> plus one <section> (children only inside them)');
+        pass('floor 9: home <main> is exactly one <h1> plus the lane <section> plus the ONE tool-island <section>');
       }
     }
   }

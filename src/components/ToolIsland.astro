@@ -1,0 +1,45 @@
+---
+// T13 tool island — SHELL with a contract, deliberately not a live tool.
+// No backend exists; this island proves three things only: a crawler-visible
+// tool surface (static <form> in the raw HTML), a token gate that rejects
+// everything (verifyToken() always returns false), and the typed endpoint
+// contract in src/config/lab.ts that v2 will honor. NO network call of any
+// kind, to any origin, exists anywhere in this component (no request API,
+// no beacon, no socket — the T13 source grep over this file finds 0 hits).
+// The data-tool-island attribute is the acceptance marker and the scoping
+// hook for the future T18 capture-surface guardrail exemption.
+---
+
+<section data-tool-island aria-labelledby="tool-island-heading">
+  <h2 id="tool-island-heading">Analysis tool</h2>
+  <form method="post">
+    <div>
+      <label for="loan-amount">Loan amount</label>
+      <input id="loan-amount" name="loan-amount" type="number" />
+    </div>
+    <div>
+      <label for="home-value">Home value</label>
+      <input id="home-value" name="home-value" type="number" />
+    </div>
+    <button type="submit">Run analysis</button>
+  </form>
+  <p aria-live="polite" data-tool-island-status></p>
+</section>
+
+<script>
+  // Token gate stub: ALWAYS rejects. The submission is intercepted and never
+  // leaves the page — no request API, no beacon, no socket is used here.
+  function verifyToken(): boolean {
+    return false;
+  }
+
+  const island = document.querySelector('[data-tool-island]');
+  const form = island?.querySelector('form');
+  const status = island?.querySelector('[data-tool-island-status]');
+  form?.addEventListener('submit', (event) => {
+    event.preventDefault();
+    if (!verifyToken() && status) {
+      status.textContent = 'Verification required. This tool is not yet live.';
+    }
+  });
+</script>

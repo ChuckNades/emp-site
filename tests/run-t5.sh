@@ -150,16 +150,23 @@ done
 pass "state pages: licensure placeholder + both city-hub links"
 
 # f. Forbidden-copy scan over the five new pages: 0 hits for serving-area
-#    phrasing and capture elements.
+#    phrasing and capture elements. T13 amendment: the ONE tool island
+#    (identified by data-tool-island) is exempt — its form/inputs are stripped
+#    before the scan, and exactly one island is required when any are found.
 for route in $GEO_ROUTES; do
   if grep -qi -e 'serving [a-z]' -e 'proudly serving' -e 'surrounding areas' "dist/$route/index.html"; then
     fail "forbidden copy (serving-area phrasing on /$route/)"
   fi
-  if grep -qi -e '<form' -e '<input' "dist/$route/index.html"; then
-    fail "forbidden copy (capture element on /$route/)"
+  islands="$(grep -o '<section[^>]*data-tool-island' "dist/$route/index.html" | wc -l)"
+  if [ "$islands" -gt 1 ]; then
+    fail "forbidden copy (/$route/ has $islands data-tool-island sections, max 1 allowed)"
+  fi
+  stripped="$(sed 's/<section[^>]*data-tool-island[^>]*>.*<\/section>//' "dist/$route/index.html")"
+  if printf '%s' "$stripped" | grep -qi -e '<form' -e '<input'; then
+    fail "forbidden copy (capture element outside the tool island on /$route/)"
   fi
 done
-pass "forbidden-copy scan (0 hits on all 5 geo pages)"
+pass "forbidden-copy scan (0 hits on all 5 geo pages; T13 tool island exempt)"
 
 # g. JSON-LD validator covers the new routes (it walks all of dist/).
 if npm run test:jsonld >/dev/null 2>&1; then
