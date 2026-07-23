@@ -1,0 +1,53 @@
+---
+import Base from '../../layouts/Base.astro';
+import { serializeJsonLd, datasetJsonLd, breadcrumbJsonLd } from '../../lib/jsonld';
+import { huntsvilleSeed } from '../../data/market/huntsville-seed';
+import { marketNarrative, formatMarketValue } from '../../lib/market-narrative';
+
+const jsonLd = [
+  datasetJsonLd({
+    name: 'Huntsville Market Report',
+    description:
+      'Public-source market data for the Huntsville, AL metro area: house price index, unemployment rate, median household income, and population.',
+    path: '/market/huntsville/',
+  }),
+  breadcrumbJsonLd([
+    { path: '/', label: 'Home' },
+    { path: '/market/huntsville/', label: 'Huntsville Market Report' },
+  ]),
+];
+
+// Table cells and the narrative share formatMarketValue (from
+// market-narrative.ts) so a rendered value always matches the module.
+---
+
+<Base title="Huntsville Market Report" description="Public-source market data for the Huntsville, AL metro area.">
+  <h1>Huntsville Market Report</h1>
+  {huntsvilleSeed.map((series) => (
+    <section aria-labelledby={`series-${huntsvilleSeed.indexOf(series)}`}>
+      <h2 id={`series-${huntsvilleSeed.indexOf(series)}`}>{series.label}</h2>
+      <table>
+        <caption>{series.label} ({series.unit})</caption>
+        <thead>
+          <tr>
+            <th scope="col">Period</th>
+            <th scope="col">Value ({series.unit})</th>
+          </tr>
+        </thead>
+        <tbody>
+          {series.rows.map((row) => (
+            <tr>
+              <td>{row.period}</td>
+              <td>{formatMarketValue(series, row.value)}</td>
+            </tr>
+          ))}
+        </tbody>
+      </table>
+      <p>{marketNarrative(series)}</p>
+      <p>
+        Source: <a href={series.sourceUrl}>{series.sourceName}</a> (retrieved {series.retrievedDate}).
+      </p>
+    </section>
+  ))}
+  <script slot="jsonld" type="application/ld+json" set:html={serializeJsonLd(jsonLd)} />
+</Base>

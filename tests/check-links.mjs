@@ -31,8 +31,8 @@ const articlePath = (category, slug) => `${hubPath(category)}${slug}/`;
 const CITY_HUBS = ['/huntsville/', '/birmingham/'];
 const STATE_PAGES = ['/alabama/', '/tennessee/', '/mississippi/'];
 
-// Allowlisted not-yet-built routes (T17 lands /market/huntsville/).
-const ALLOWLIST = new Set(['/market/huntsville/']);
+// Allowlisted not-yet-built routes (empty — /market/huntsville/ now exists).
+const ALLOWLIST = new Set();
 
 let failed = false;
 const pass = (msg) => console.log(`PASS: ${msg}`);

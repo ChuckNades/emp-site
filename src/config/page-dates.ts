@@ -9,6 +9,7 @@ export const PAGE_DATES: Record<string, string> = {
   '/results/': '2026-07-22',
   '/contact/': '2026-07-22',
   '/huntsville/': '2026-07-22',
+  '/market/huntsville/': '2026-07-23',
   '/birmingham/': '2026-07-22',
   '/alabama/': '2026-07-22',
   '/tennessee/': '2026-07-22',

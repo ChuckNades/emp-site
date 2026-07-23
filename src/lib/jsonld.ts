@@ -12,6 +12,7 @@ import type {
   FAQPage,
   Question,
   VideoObject,
+  Dataset,
   WithContext,
 } from 'schema-dts';
 import { getEntry } from 'astro:content';
@@ -26,7 +27,7 @@ import {
 import { SITE } from '../config/site';
 
 export type JsonLd = WithContext<
-  Organization | MortgageBroker | BreadcrumbList | ProfilePage | Person | Article | FAQPage | VideoObject
+  Organization | MortgageBroker | BreadcrumbList | ProfilePage | Person | Article | FAQPage | VideoObject | Dataset
 >;
 
 // Serialize JSON-LD for safe injection via set:html: every `<` is escaped as
@@ -180,5 +181,25 @@ export function faqPageJsonLd(faqs: FaqPair[]): WithContext<FAQPage> {
     '@context': 'https://schema.org',
     '@type': 'FAQPage',
     mainEntity,
+  };
+}
+
+export interface DatasetInput {
+  name: string;
+  description: string;
+  path: string;
+}
+
+// Dataset JSON-LD for the market report page. creator is the Organization;
+// distribution is omitted (the data is rendered inline as HTML tables, not
+// offered as a downloadable file).
+export function datasetJsonLd(input: DatasetInput): WithContext<Dataset> {
+  return {
+    '@context': 'https://schema.org',
+    '@type': 'Dataset',
+    name: input.name,
+    description: input.description,
+    url: new URL(input.path, SITE).href,
+    creator: organizationJsonLd(),
   };
 }
