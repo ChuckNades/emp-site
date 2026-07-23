@@ -21,6 +21,7 @@
     "test:t13": "bash tests/run-t13.sh",
     "test:t15a": "bash tests/run-t15a.sh",
     "test:t17": "bash tests/run-t17.sh",
+    "test:t18": "bash tests/run-t18.sh",
     "test:jsonld": "node tests/validate-jsonld.mjs"
   },
   "dependencies": {

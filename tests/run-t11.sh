@@ -2,7 +2,9 @@
 # T11 test mechanism: CI workflow wiring.
 # Yaml-parses .github/workflows/ci.yml and content.yml (js-yaml from
 # node_modules) and asserts: every test:* script in package.json (except
-# test:t11 itself) appears as a named ci.yml step; both workflows trigger on
+# test:t11 itself) appears as a named ci.yml step, and test:t18 (T18 surface
+# guardrails) is present as a gate step even independent of package.json; both
+# workflows trigger on
 # all dev pushes + PRs into main and decide the lane by the SAME changed-paths
 # (git diff) all-match guard — content.yml runs only when every changed path
 # is ratified content, ci.yml skips exactly then; notify-failure exists with
@@ -62,6 +64,15 @@ if (missing.length === 0) {
   pass(`all ${expected.length} test:* scripts are ci.yml gate steps`);
 } else {
   fail(`ci.yml gate missing steps for: ${missing.join(', ')}`);
+}
+
+// 1b. T18: the battery is complete only when the surface guardrails run —
+//     test:t18 must be present as a ci.yml gate step even if package.json
+//     loses the script entry (defense in depth on top of check 1).
+if (stepRuns.some((r) => r.includes('npm run test:t18'))) {
+  pass('test:t18 (surface guardrails) present as a ci.yml gate step');
+} else {
+  fail('test:t18 absent from ci.yml — battery incomplete without the surface guardrails');
 }
 
 // 2. Both workflows trigger on ALL dev pushes and PRs into main (no

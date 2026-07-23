@@ -123,6 +123,12 @@ jobs:
           LHCI_CI: "1"
           LHCI_RUNS: "5"
 
+      # T18: surface guardrails on the final dist — the LAST build task,
+      # running against a clean production build (no fixtures).
+      - name: test:t18
+        if: steps.gate.outputs.content_only == 'false'
+        run: npm run test:t18
+
       - name: test:t12
         if: steps.gate.outputs.content_only == 'false'
         run: npm run test:t12
