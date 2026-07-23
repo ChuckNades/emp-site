@@ -28,3 +28,6 @@ pnpm-debug.log*
 
 # playwright test output
 test-results/
+
+# lighthouse ci output
+.lighthouseci/
