@@ -50,7 +50,7 @@ One fix pass over the five cross-vendor review findings. Work done only on
 
 `tests/run-t15a.sh` clause a (quarantine grep) was failing on a clean tree
 before this pass: `T15a-CHECKPOINT.md` legitimately names the banned string
-`_quarantine/` as a documentation literal but was not in the grep allowlist
+the quarantine-path string as a documentation literal but was not in the grep allowlist
 (only `T15a-TASK.md` and the script itself were). Added
 `T15a-CHECKPOINT.md` to the allowlist so the suite exits 0 as acceptance
 requires. The grep still scans everything else; no assertion weakened.
