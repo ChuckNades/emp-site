@@ -141,6 +141,10 @@ jobs:
         if: steps.gate.outputs.content_only == 'false'
         run: npm run test:t15a
 
+      - name: test:t15b
+        if: steps.gate.outputs.content_only == 'false'
+        run: npm run test:t15b
+
       - name: test:t17
         if: steps.gate.outputs.content_only == 'false'
         run: npm run test:t17
