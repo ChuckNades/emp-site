@@ -1,0 +1,1 @@
+# V2 Checkpoint — portrait crop fix (stage-3 close): scoped `.bio` style on /about/ keeps the full square portrait reading on mobile (`max-width:100%;height:auto`, `object-position:center top` <640px, token-based `sizes`); build exits 0, test:t8 and test:t15b pass; dev only, not pushed.

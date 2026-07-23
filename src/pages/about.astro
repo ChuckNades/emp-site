@@ -22,8 +22,25 @@ const portraitAlt = pete?.data.name || 'Portrait';
 
 <Base title="About" description="About EMP">
   <h1>About</h1>
-  <section aria-label="Bio">
-    <Pic src={portrait} alt={portraitAlt} widths={[400, 800, 1000]} sizes="(max-width: 1000px) 100vw, 1000px" />
+  <section aria-label="Bio" class="bio">
+    <Pic src={portrait} alt={portraitAlt} widths={[400, 800, 1000]} sizes="(max-width: 640px) calc(100vw - 48px), 1000px" />
   </section>
   <script slot="jsonld" type="application/ld+json" set:html={serializeJsonLd(jsonLd)} />
 </Base>
+
+<style>
+  /* V2: the graded portrait is a square composition; keep the full frame
+     reading on mobile instead of over-filling the narrow viewport. Tokens
+     only — no new values. */
+  .bio :global(img) {
+    display: block;
+    max-width: 100%;
+    height: auto;
+  }
+  @media (max-width: 640px) {
+    .bio :global(img) {
+      width: 100%;
+      object-position: center top;
+    }
+  }
+</style>
