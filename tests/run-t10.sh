@@ -26,9 +26,24 @@ if [ -d "$PW_LIBS_DIR" ]; then
 fi
 
 # Reuse the Playwright Chromium for Lighthouse (lhci honors CHROME_PATH).
+# R6: LHCI's chromeFlags plumbing is not reliably delivering --no-sandbox to
+# the runner's ChromeLauncher ("No usable sandbox" FATAL despite the flags in
+# lighthouserc.cjs). Stop relying on it: generate a wrapper script that
+# hard-codes the sandbox flags and export CHROME_PATH pointing at the WRAPPER.
+# The lighthouserc chromeFlags stay too (belt and suspenders).
 CHROME_BIN="$HOME/.cache/ms-playwright/chromium-1228/chrome-linux64/chrome"
 if [ -x "$CHROME_BIN" ]; then
-  export CHROME_PATH="$CHROME_BIN"
+  CHROME_WRAPPER=".codex-tmp/chrome-wrapped.sh"
+  mkdir -p .codex-tmp
+  cat > "$CHROME_WRAPPER" <<EOF
+#!/usr/bin/env bash
+exec "$CHROME_BIN" --no-sandbox --disable-dev-shm-usage "\$@"
+EOF
+  chmod +x "$CHROME_WRAPPER"
+  export CHROME_PATH="$PWD/$CHROME_WRAPPER"
+  # Proof in logs: the wrapper path and its first two lines.
+  echo "T10: CHROME_PATH=$CHROME_PATH (chrome wrapper)"
+  head -2 "$CHROME_WRAPPER"
 fi
 
 # chrome-launcher detects WSL and assumes a WINDOWS Chrome: it would build a
