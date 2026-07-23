@@ -1,0 +1,114 @@
+# T11: full CI gate battery. Runs on every push to dev and every PR into
+# main, EXCEPT when the only changed paths are ratified content/media
+# (src/content/**, src/assets/content/**) — those take the validate-only
+# bypass lane in content.yml instead.
+name: ci
+
+on:
+  push:
+    branches: [dev]
+    paths-ignore:
+      - 'src/content/**'
+      - 'src/assets/content/**'
+  pull_request:
+    branches: [main]
+    paths-ignore:
+      - 'src/content/**'
+      - 'src/assets/content/**'
+
+jobs:
+  gate:
+    name: build + full test battery
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+
+      - uses: actions/setup-node@v4
+        with:
+          node-version: 22
+          cache: npm
+
+      - name: install
+        run: npm ci
+
+      - name: install playwright chromium
+        run: npx playwright install --with-deps chromium
+
+      - name: build
+        run: npm run build
+
+      - name: test:jsonld
+        run: npm run test:jsonld
+
+      - name: test:t2
+        run: npm run test:t2
+
+      - name: test:t4
+        run: npm run test:t4
+
+      - name: test:t5
+        run: npm run test:t5
+
+      - name: test:t6
+        run: npm run test:t6
+
+      - name: test:t7
+        run: npm run test:t7
+
+      - name: test:t8
+        run: npm run test:t8
+
+      - name: test:t9
+        run: npm run test:t9
+
+      - name: test:t10
+        run: npm run test:t10
+
+      - name: test:t13
+        run: npm run test:t13
+
+      - name: test:t15a
+        run: npm run test:t15a
+
+      - name: test:t17
+        run: npm run test:t17
+
+  # T14: alert stub. Fires only when the gate battery fails. The destination
+  # is a Pete-supplied [FILL] — until ALERT_WEBHOOK_URL / ALERT_CHANNEL are
+  # configured, the step is a no-op that exits 0. Never invent a destination.
+  notify-failure:
+    name: notify on failure (stub)
+    runs-on: ubuntu-latest
+    needs: [gate]
+    if: failure()
+    steps:
+      - name: alert webhook
+        env:
+          ALERT_WEBHOOK_URL: ${{ secrets.ALERT_WEBHOOK_URL }}
+          ALERT_CHANNEL: ${{ vars.ALERT_CHANNEL }}
+        run: |
+          if [ -z "$ALERT_WEBHOOK_URL" ] || [ -z "$ALERT_CHANNEL" ]; then
+            echo "alert stub: no channel configured"
+            exit 0
+          fi
+          curl -sf -X POST -H 'Content-Type: application/json' \
+            -d "{\"channel\": \"$ALERT_CHANNEL\", \"text\": \"ci.yml gate failed on ${GITHUB_REF} (${GITHUB_SHA})\"}" \
+            "$ALERT_WEBHOOK_URL"
+
+  # T16: IndexNow. Wired but dormant: hosting is not ratified, so the job
+  # body is a no-op echo stub. The key file public/ed10e79cc5872cd3c6df034fb35a7560.txt
+  # is committed and ships in dist/ (asserted by test:t11); the real curl
+  # below references that same key and the SITE host (src/config/site.ts).
+  notify-indexnow:
+    name: ping IndexNow (stub)
+    runs-on: ubuntu-latest
+    needs: [gate]
+    if: github.ref == 'refs/heads/main'
+    steps:
+      - name: notify IndexNow
+        run: |
+          echo "indexnow stub: hosting not ratified, no-op"
+          # enable at hosting ratification:
+          # curl -sf -X POST -H 'Content-Type: application/json' \
+          #   -d '{"host": "expertmortgagepro.com", "key": "ed10e79cc5872cd3c6df034fb35a7560", "keyLocation": "https://expertmortgagepro.com/ed10e79cc5872cd3c6df034fb35a7560.txt", "urlList": ["https://expertmortgagepro.com/"]}' \
+          #   https://api.indexnow.org/indexnow

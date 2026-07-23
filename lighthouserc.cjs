@@ -18,7 +18,12 @@ module.exports = {
       // performance category only. Lighthouse's default settings are already
       // the mobile emulation preset (mobile form factor, simulated throttling),
       // which is what the T10 spec pins.
-      settings: {},
+      settings: {
+        // Pin a Linux user-data-dir (see tests/run-t10.sh): chrome-launcher's
+        // WSL detection would otherwise hand the Linux browser a Windows temp
+        // path that gets created literally inside the repo.
+        chromeFlags: [`--user-data-dir=${process.env.LHCI_CHROME_USER_DATA_DIR || '.codex-tmp/lhci-chrome-profile'}`],
+      },
     },
     assert: {
       assertions: {

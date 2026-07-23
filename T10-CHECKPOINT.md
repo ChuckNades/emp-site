@@ -10,9 +10,14 @@
   an earlier draft set `preset: 'perf'`, which restricts collection to the
   performance category only (SEO/a11y/BP audits never ran, `auditRan: 0`
   assertion failures); removed — the mobile preset must not narrow categories.
-  `assert`: category scores only, `aggregationMethod: 'median'` —
-  performance ≥ 0.90, seo = 1.00, accessibility ≥ 0.95, best-practices ≥ 0.95.
-  `upload`: temporary-public-storage (report links only; no server).
+  `settings.chromeFlags` pins `--user-data-dir` to a Linux path under
+  `.codex-tmp/` (from `LHCI_CHROME_USER_DATA_DIR`, exported by the runner):
+  chrome-launcher's WSL detection otherwise assumes a Windows Chrome and hands
+  the Linux browser a Windows temp path (`C:\Users\...\lighthouse.NNN`) that
+  gets created literally inside the repo. `assert`: category scores only,
+  `aggregationMethod: 'median'` — performance ≥ 0.90, seo = 1.00,
+  accessibility ≥ 0.95, best-practices ≥ 0.95. `upload`:
+  temporary-public-storage (report links only; no server).
 - `tests/run-t10.sh` — installs the valid fixture set (same `collection_for`
   mapping as run-t2), fresh `npm run build`, serves `dist/` via
   `astro preview` on port 44310, waits for readiness, runs `lhci autorun`
@@ -39,9 +44,11 @@ hub) · `/faq/`
 All four URLs meet all four thresholds (perf ≥ 0.90, seo = 1.00, a11y ≥ 0.95,
 bp ≥ 0.95). No underlying page/template fixes were required — the pages passed
 as built; the only corrections during bring-up were to the T10 wiring itself
-(CHROME_PATH directory name `chrome-linux64`, and dropping the `perf` preset
-so all four categories are collected). Thresholds were not lowered, no audits
-exempted, URL set not narrowed.
+(CHROME_PATH directory name `chrome-linux64`; dropping the `perf` preset so
+all four categories are collected; pinning a Linux `--user-data-dir` so
+chrome-launcher's WSL path handling stops littering the repo with
+`C:\Users\...` profile dirs). Thresholds were not lowered, no audits exempted,
+URL set not narrowed.
 
 ## Acceptance results
 1. `npm run test:t10` exits 0 — all four URLs meet all four thresholds on

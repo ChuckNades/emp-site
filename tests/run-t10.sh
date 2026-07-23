@@ -29,6 +29,23 @@ if [ -x "$CHROME_BIN" ]; then
   export CHROME_PATH="$CHROME_BIN"
 fi
 
+# chrome-launcher detects WSL and assumes a WINDOWS Chrome: it would build a
+# Windows temp path (C:\Users\...\lighthouse.NNN) that the Linux browser then
+# creates literally inside the repo. We run the LINUX Playwright Chromium, so
+# lighthouserc.cjs pins an explicit Linux user-data-dir via chromeFlags —
+# makeTmpDir() is skipped entirely when userDataDir is set. The profile dir
+# lives under .codex-tmp/ (gitignored) and is removed by the trap below.
+CHROME_PROFILE_DIR=".codex-tmp/lhci-chrome-profile"
+mkdir -p "$CHROME_PROFILE_DIR"
+export LHCI_CHROME_USER_DATA_DIR="$PWD/$CHROME_PROFILE_DIR"
+
+# Hygiene: pin the temp dir to /tmp so a Windows TEMP/TMP leaking into a WSL
+# shell cannot make lhci/chrome-launcher create mis-named temp dirs inside
+# the repo.
+export TMPDIR=/tmp
+export TEMP=/tmp
+export TMP=/tmp
+
 # Map a fixture filename to its collection directory (same rules as run-t2.sh).
 collection_for() {
   case "$1" in
@@ -57,6 +74,7 @@ cleanup() {
   for col in $COLLECTIONS; do
     rm -rf "$CONTENT_DIR/$col"
   done
+  rm -rf "$CHROME_PROFILE_DIR"
 }
 trap cleanup EXIT
 

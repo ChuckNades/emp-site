@@ -1,0 +1,38 @@
+# T11 bypass lane: runs ONLY when every changed path is ratified
+# content/media (src/content/** or src/assets/content/**). Brand assets
+# (src/assets/brand/**) are NOT bypass paths and take the full ci.yml gate.
+# Ratified media bypass — validate-only: build + schema validation (test:t2).
+name: content
+
+on:
+  push:
+    branches: [dev]
+    paths:
+      - 'src/content/**'
+      - 'src/assets/content/**'
+  pull_request:
+    branches: [main]
+    paths:
+      - 'src/content/**'
+      - 'src/assets/content/**'
+
+jobs:
+  validate:
+    name: build + schema validation only
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+
+      - uses: actions/setup-node@v4
+        with:
+          node-version: 22
+          cache: npm
+
+      - name: install
+        run: npm ci
+
+      - name: build
+        run: npm run build
+
+      - name: test:t2
+        run: npm run test:t2
