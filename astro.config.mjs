@@ -21,6 +21,16 @@ function frontmatterValue(/** @type {string} */ raw, /** @type {string} */ key) 
 // route under their owning hub: /<hub-param>/<slug>/.
 const HUB_ROUTE_PREFIX = { learn: 'learn', partners: 'grow', originators: 'become' };
 
+// Treat page-dates/frontmatter values as CALENDAR dates, not instants. The
+// sitemap stream coerces lastmod through `new Date(v).toISOString()`; parsing
+// a bare 'YYYY-MM-DD' as UTC midnight then re-emitting can shift the day in a
+// non-UTC build TZ. Anchoring the date at UTC noon keeps the emitted calendar
+// day identical in every timezone (UTC±12 all fall inside the same day), so
+// the sitemap lastmod is the plain date with no TZ-sensitive time component.
+function calendarDate(/** @type {string | undefined} */ dateStr) {
+  return dateStr ? new Date(`${dateStr}T12:00:00.000Z`) : undefined;
+}
+
 // Each entry carries its full expected pathname so the sitemap serialize hook
 // can match routes EXACTLY (never by substring): posts resolve under their
 // owning hub slug (category -> hub route prefix), shownotes/videos under
@@ -69,7 +79,7 @@ export default defineConfig({
         const path = new URL(item.url).pathname;
         // Static/core pages: per-page date from the page-dates map.
         if (PAGE_DATES[path]) {
-          item.lastmod = PAGE_DATES[path];
+          item.lastmod = calendarDate(PAGE_DATES[path]);
           return item;
         }
         // Collection-driven pages: exact pathname match against each entry's
@@ -80,7 +90,7 @@ export default defineConfig({
           (e) => !e.draft && e.pathname && e.pathname === path,
         );
         if (entry) {
-          item.lastmod = entry.dateModified ?? entry.datePublished;
+          item.lastmod = calendarDate(entry.dateModified ?? entry.datePublished);
         }
         return item;
       },

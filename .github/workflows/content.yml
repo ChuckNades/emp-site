@@ -1,5 +1,9 @@
-# T11 bypass lane: runs ONLY when every changed path is ratified
-# content/media (src/content/** or src/assets/content/**). Brand assets
+# T11 bypass lane. GitHub `on.push.paths` triggers when ANY changed file
+# matches, but the ratified bypass requires EVERY changed file to be a content
+# path. So this workflow triggers on ALL dev pushes (and PRs into main), then
+# its single job FIRST runs a changed-paths check and SKIPS (exits success,
+# running nothing else) unless every changed path is ratified content/media
+# (src/content/** or src/assets/content/**). Brand assets
 # (src/assets/brand/**) are NOT bypass paths and take the full ci.yml gate.
 # Ratified media bypass — validate-only: build + schema validation (test:t2).
 name: content
@@ -7,14 +11,8 @@ name: content
 on:
   push:
     branches: [dev]
-    paths:
-      - 'src/content/**'
-      - 'src/assets/content/**'
   pull_request:
     branches: [main]
-    paths:
-      - 'src/content/**'
-      - 'src/assets/content/**'
 
 jobs:
   validate:
@@ -22,6 +20,42 @@ jobs:
     runs-on: ubuntu-latest
     steps:
       - uses: actions/checkout@v4
+        with:
+          fetch-depth: 0
+
+      # Decide the lane: content-only iff EVERY changed path is under
+      # src/content/** or src/assets/content/**. Exits 1 (skipping the rest)
+      # when the push is not content-only — ci.yml takes those.
+      - name: changed-paths check (content-only?)
+        id: gate
+        run: |
+          set -euo pipefail
+          if [ "${{ github.event_name }}" = "pull_request" ]; then
+            BASE="${{ github.event.pull_request.base.sha }}"
+            RANGE="$BASE..${{ github.sha }}"
+          else
+            BASE="${{ github.event.before }}"
+            # A brand-new branch has an all-zero before SHA; diff against the
+            # empty tree so every file in the push counts as changed.
+            if [ "$BASE" = "0000000000000000000000000000000000000000" ]; then
+              RANGE="4b825dc642cb6eb9a060e54bf8d69288fbee4904 ${{ github.sha }}"
+            else
+              RANGE="$BASE..${{ github.sha }}"
+            fi
+          fi
+          changed="$(git diff --name-only $RANGE)"
+          if [ -z "$changed" ]; then
+            echo "changed-paths: no changed files — not content-only"
+            exit 1
+          fi
+          echo "changed-paths: changed files:"
+          echo "$changed"
+          # Any changed path OUTSIDE the ratified content roots -> not content-only.
+          if echo "$changed" | grep -qv -e '^src/content/' -e '^src/assets/content/'; then
+            echo "changed-paths: non-content path present — not content-only (ci.yml takes this push)"
+            exit 1
+          fi
+          echo "changed-paths: every changed path is content — running validate-only bypass"
 
       - uses: actions/setup-node@v4
         with:

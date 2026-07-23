@@ -1,6 +1,9 @@
 #!/usr/bin/env bash
 # T4 test mechanism: robots.txt + sitemap lastmod + llms.txt.
-# Exits nonzero on any failure; prints a per-check PASS line.
+# Timezone-proof: page-dates/frontmatter dates are calendar dates. The sitemap
+# emits lastmod as the plain date (YYYY-MM-DD, no time component), so the test
+# compares date-STRINGS (never a TZ-shifted instant). Exits nonzero on any
+# failure; prints a per-check PASS line.
 set -u
 cd "$(dirname "$0")/.."
 
@@ -8,7 +11,6 @@ FIXTURES_DIR="tests/fixtures"
 CONTENT_DIR="src/content"
 COLLECTIONS="posts faqs shownotes videos"
 SITE="https://expertmortgagepro.com"
-TODAY="$(date +%F)"
 
 # Map a fixture filename to its collection directory (same mechanism as run-t2.sh).
 collection_for() {
@@ -142,20 +144,27 @@ if (locs.some((l) => l && l.includes('post-draft-fixture')))
 if (blocks.some((b) => !/<lastmod>[^<]+<\/lastmod>/.test(b)))
   fail('a sitemap entry is missing <lastmod>');
 
-console.log('PASS: sitemap coverage + draft exclusion + lastmod present');
+// Every lastmod is a calendar date anchored at UTC noon, so its date prefix
+// (YYYY-MM-DD) is identical in every timezone — no TZ conversion can shift
+// the day. Assert the shape carries that stable date prefix.
+const lmValues = blocks.map((b) => (b.match(/<lastmod>([^<]+)<\/lastmod>/) ?? [])[1]);
+if (lmValues.some((v) => !/^\d{4}-\d{2}-\d{2}T12:00:00\.000Z$/.test(v || '')))
+  fail('a sitemap lastmod is not the TZ-stable calendar-date form (expected YYYY-MM-DDT12:00:00.000Z)');
+
+console.log('PASS: sitemap coverage + draft exclusion + lastmod present (tz-stable date)');
 EOF
 [ "$d_ok" -eq 1 ] || exit 1
 
 # e. Per-page lastmod proof, value-for-value.
-#    Sitemap lastmod values are ISO datetimes (e.g. 2026-07-22T00:00:00.000Z);
-#    compare their date prefix against the expected ISO date.
-#    Core routes equal their page-dates.ts entries (all four = today).
+#    Sitemap lastmod is the plain calendar date (YYYY-MM-DD, no time), so the
+#    comparison is date-STRING equality — TZ-independent. Core routes equal
+#    their page-dates.ts entries (all four = 2026-07-22).
 for route in / /about/ /results/ /contact/; do
   got="$(lastmod_for "$SITE$route")"
-  if [ "${got%%T*}" = "$TODAY" ] && [ -n "$got" ]; then
-    pass "lastmod $route = $TODAY"
+  if [ "${got%%T*}" = "2026-07-22" ] && [ -n "$got" ]; then
+    pass "lastmod $route = 2026-07-22"
   else
-    fail "lastmod $route (expected $TODAY from page-dates.ts, got '${got:-none}')"
+    fail "lastmod $route (expected 2026-07-22 from page-dates.ts, got '${got:-none}')"
   fi
 done
 

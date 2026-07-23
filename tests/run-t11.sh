@@ -2,10 +2,13 @@
 # T11 test mechanism: CI workflow wiring.
 # Yaml-parses .github/workflows/ci.yml and content.yml (js-yaml from
 # node_modules) and asserts: every test:* script in package.json (except
-# test:t11 itself) appears as a named ci.yml step; content.yml triggers only
-# on the ratified bypass paths; notify-failure exists with if: failure();
-# notify-indexnow is main-gated; the IndexNow key file exists in public/ and
-# (after a build) in dist/, and its filename appears in the ci.yml curl line.
+# test:t11 itself) appears as a named ci.yml step; both workflows trigger on
+# all dev pushes + PRs into main and decide the lane by the SAME changed-paths
+# (git diff) all-match guard — content.yml runs only when every changed path
+# is ratified content, ci.yml skips exactly then; notify-failure exists with
+# if: failure(); notify-indexnow is main-gated; the IndexNow key file exists
+# in public/ and (after a build) in dist/, and its filename appears in the
+# ci.yml curl line.
 # Exits nonzero on any failure; prints a per-check PASS line.
 set -u
 cd "$(dirname "$0")/.."
@@ -61,35 +64,38 @@ if (missing.length === 0) {
   fail(`ci.yml gate missing steps for: ${missing.join(', ')}`);
 }
 
-// 2. ci.yml triggers on push to dev and PRs into main, with the bypass
-//    paths ignored on both.
+// 2. Both workflows trigger on ALL dev pushes and PRs into main (no
+//    paths/paths-ignore filters — the lane is decided by a changed-paths
+//    guard inside the job, not by GitHub's any-match path trigger).
 const ciPush = ciOn?.push || {};
 const ciPr = ciOn?.pull_request || {};
-const bypass = ['src/content/**', 'src/assets/content/**'];
-const ciBranchesOk =
-  JSON.stringify(ciPush.branches) === JSON.stringify(['dev']) &&
-  JSON.stringify(ciPr.branches) === JSON.stringify(['main']);
-const ciIgnoreOk = bypass.every(
-  (p) => (ciPush['paths-ignore'] || []).includes(p) && (ciPr['paths-ignore'] || []).includes(p),
-);
-if (ciBranchesOk && ciIgnoreOk) {
-  pass('ci.yml triggers: push dev + PR main, bypass paths ignored');
-} else {
-  fail(`ci.yml triggers wrong (branches ok: ${ciBranchesOk}, paths-ignore ok: ${ciIgnoreOk})`);
-}
-
-// 3. content.yml triggers ONLY on the bypass paths (both push and PR).
 const cPush = contentOn?.push || {};
 const cPr = contentOn?.pull_request || {};
-const sorted = (a) => [...(a || [])].sort();
-const cPathsOk =
-  JSON.stringify(sorted(cPush.paths)) === JSON.stringify(sorted(bypass)) &&
-  JSON.stringify(sorted(cPr.paths)) === JSON.stringify(sorted(bypass)) &&
-  !cPush['paths-ignore'] && !cPr['paths-ignore'];
-if (cPathsOk) {
-  pass('content.yml triggers only on the ratified bypass paths');
+const noPathFilter = (t) => !t.paths && !t['paths-ignore'];
+const triggersOk =
+  JSON.stringify(ciPush.branches) === JSON.stringify(['dev']) &&
+  JSON.stringify(ciPr.branches) === JSON.stringify(['main']) &&
+  JSON.stringify(cPush.branches) === JSON.stringify(['dev']) &&
+  JSON.stringify(cPr.branches) === JSON.stringify(['main']) &&
+  noPathFilter(ciPush) && noPathFilter(ciPr) && noPathFilter(cPush) && noPathFilter(cPr);
+if (triggersOk) {
+  pass('both workflows trigger on all dev pushes + PR main, no path filters');
 } else {
-  fail(`content.yml trigger paths wrong: push=${JSON.stringify(cPush.paths)} pr=${JSON.stringify(cPr.paths)}`);
+  fail(`workflow triggers wrong (ci push=${JSON.stringify(ciPush)} pr=${JSON.stringify(ciPr)}; content push=${JSON.stringify(cPush)} pr=${JSON.stringify(cPr)})`);
+}
+
+// 3. The lane is decided by the SAME all-match changed-paths guard in both
+//    workflows: a git diff --name-only against the before/base SHA whose
+//    content-only test greps for any path OUTSIDE src/content/ or
+//    src/assets/content/. content.yml runs only when content-only; ci.yml
+//    skips exactly then — mutually exclusive by commit.
+const guardBits = ['git diff --name-only', 'github.event.before', '^src/content/', '^src/assets/content/'];
+const ciGuardOk = guardBits.every((b) => ciText.includes(b)) && /content-only/.test(ciText);
+const contentGuardOk = guardBits.every((b) => contentText.includes(b)) && /content-only/.test(contentText);
+if (ciGuardOk && contentGuardOk) {
+  pass('both workflows gate on the same all-match changed-paths (git diff) guard');
+} else {
+  fail(`changed-paths guard missing (ci ok: ${ciGuardOk}, content ok: ${contentGuardOk})`);
 }
 
 // 4. content.yml runs build + test:t2 only.

@@ -1,20 +1,18 @@
 # T11: full CI gate battery. Runs on every push to dev and every PR into
-# main, EXCEPT when the only changed paths are ratified content/media
+# main, EXCEPT when every changed path is ratified content/media
 # (src/content/**, src/assets/content/**) — those take the validate-only
-# bypass lane in content.yml instead.
+# bypass lane in content.yml instead. GitHub `paths-ignore` triggers when ANY
+# changed file is not ignored, which is the wrong polarity for the ratified
+# all-match rule, so the battery decides by the SAME changed-paths check
+# content.yml uses and SKIPS (exits success, running nothing else) when the
+# push is content-only. The two lanes are mutually exclusive by commit.
 name: ci
 
 on:
   push:
     branches: [dev]
-    paths-ignore:
-      - 'src/content/**'
-      - 'src/assets/content/**'
   pull_request:
     branches: [main]
-    paths-ignore:
-      - 'src/content/**'
-      - 'src/assets/content/**'
 
 jobs:
   gate:
@@ -22,6 +20,34 @@ jobs:
     runs-on: ubuntu-latest
     steps:
       - uses: actions/checkout@v4
+        with:
+          fetch-depth: 0
+
+      # Inverse of content.yml: skip the battery when EVERY changed path is
+      # ratified content/media (that push takes the validate-only bypass).
+      - name: changed-paths check (skip when content-only)
+        id: gate
+        run: |
+          set -euo pipefail
+          if [ "${{ github.event_name }}" = "pull_request" ]; then
+            BASE="${{ github.event.pull_request.base.sha }}"
+            RANGE="$BASE..${{ github.sha }}"
+          else
+            BASE="${{ github.event.before }}"
+            # A brand-new branch has an all-zero before SHA; diff against the
+            # empty tree so every file in the push counts as changed.
+            if [ "$BASE" = "0000000000000000000000000000000000000000" ]; then
+              RANGE="4b825dc642cb6eb9a060e54bf8d69288fbee4904 ${{ github.sha }}"
+            else
+              RANGE="$BASE..${{ github.sha }}"
+            fi
+          fi
+          changed="$(git diff --name-only $RANGE)"
+          if [ -n "$changed" ] && ! echo "$changed" | grep -qv -e '^src/content/' -e '^src/assets/content/'; then
+            echo "changed-paths: content-only push — skipping the full battery (content.yml takes this push)"
+            exit 1
+          fi
+          echo "changed-paths: non-content path present — running the full battery"
 
       - uses: actions/setup-node@v4
         with:
