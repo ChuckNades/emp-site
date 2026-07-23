@@ -22,6 +22,15 @@ const SIZE_CAP = 102400; // 100 KB
 const IMAGE_FILE_EXT = /\.(png|jpe?g|webp|avif|gif|svg)$/i;
 const BANNED_REF_EXT = /\.(?:jpe?g|png)(?:[?"'\s)#]|$)/i;
 
+// T15a: the four favicon/OG files are pipeline-exempt public/ brand assets
+// (committed outputs of scripts/gen-favicons.mjs), not content images — the
+// format-allowlist and size-cap clauses skip exactly these pinned paths.
+const T15A_EXEMPT = new Set([
+  'favicon-32.png',
+  'apple-touch-icon.png',
+  'og-default.png',
+]);
+
 let failed = false;
 const pass = (msg) => console.log(`PASS: ${msg}`);
 const fail = (msg) => {
@@ -62,15 +71,23 @@ for (const file of htmlFiles) {
       '',
     );
     const banned = withoutJsonLd.match(BANNED_REF_EXT);
-    if (banned) {
-      fail(`clause a (format allowlist): ${rel} references a raster image outside {webp,avif,svg} (${banned[0].trim()})`);
+    // T15a: strip references to the pinned pipeline-exempt brand assets
+    // before the banned-extension scan (og:image is an absolute URL, the
+    // PNG favicons are <link> hrefs — both would otherwise trip clause a).
+    const scrubbed = withoutJsonLd.replace(
+      /(?:https?:\/\/[^"'\s)]*\/)?(?:favicon-32\.png|apple-touch-icon\.png|og-default\.png)/gi,
+      '',
+    );
+    const bannedRef = scrubbed.match(BANNED_REF_EXT);
+    if (bannedRef) {
+      fail(`clause a (format allowlist): ${rel} references a raster image outside {webp,avif,svg} (${bannedRef[0].trim()})`);
       bad += 1;
     }
     if (/data:image\//i.test(text)) {
       fail(`clause a (format allowlist): ${rel} contains a data: image URI`);
       bad += 1;
     }
-    const external = withoutJsonLd.match(/https?:\/\/[^"'\s)]+\.(?:png|jpe?g|webp|avif|gif|svg)/i);
+    const external = scrubbed.match(/https?:\/\/[^"'\s)]+\.(?:png|jpe?g|webp|avif|gif|svg)/i);
     if (external) {
       fail(`clause a (format allowlist): ${rel} references an external image URL (${external[0]})`);
       bad += 1;
@@ -87,6 +104,8 @@ for (const file of htmlFiles) {
   let count = 0;
   for (const file of allFiles) {
     if (!IMAGE_FILE_EXT.test(file)) continue;
+    // T15a: the pinned pipeline-exempt brand assets are exempt from the cap.
+    if (T15A_EXEMPT.has(path.relative(DIST, file).replaceAll(path.sep, '/'))) continue;
     count += 1;
     const size = fs.statSync(file).size;
     if (size > SIZE_CAP) {

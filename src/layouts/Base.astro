@@ -3,6 +3,7 @@
 // the identity system lands in a later task (T15b).
 import { SITE } from '../config/site';
 import { HUB_CATEGORIES, HUB_SLUGS, HUB_LABELS } from '../config/hubs';
+import markUrl from '../assets/brand/emp-mark.svg?url';
 
 interface Props {
   title: string;
@@ -11,6 +12,9 @@ interface Props {
 
 const { title, description } = Astro.props;
 const canonicalUrl = new URL(Astro.url.pathname, SITE).href;
+// Default OG image for every page (T15a): committed pipeline-exempt public/
+// asset, referenced as an absolute URL off the canonical site origin.
+const ogImageUrl = new URL('/og-default.png', SITE).href;
 
 // Flat global nav; hub labels/paths resolve through hubs.ts (zero slug literals).
 const NAV_LINKS = [
@@ -34,16 +38,21 @@ const NAV_LINKS = [
     <meta charset="utf-8" />
     <meta name="viewport" content="width=device-width, initial-scale=1" />
     <link rel="canonical" href={canonicalUrl} />
+    <link rel="icon" href="/favicon.svg" type="image/svg+xml" />
+    <link rel="icon" href="/favicon-32.png" type="image/png" sizes="32x32" />
+    <link rel="apple-touch-icon" href="/apple-touch-icon.png" />
     <title>{title}</title>
     <meta name="description" content={description} />
     <meta property="og:title" content={title} />
     <meta property="og:description" content={description} />
     <meta property="og:type" content="website" />
     <meta property="og:url" content={canonicalUrl} />
+    <meta property="og:image" content={ogImageUrl} />
     <slot name="jsonld" />
   </head>
   <body>
     <header>
+      <a href="/"><img src={markUrl} alt="Expert Mortgage Pro" width="40" height="40" /></a>
       <nav>
         <ul>
           {NAV_LINKS.map(({ href, label }) => (
@@ -56,6 +65,7 @@ const NAV_LINKS = [
       <slot />
     </main>
     <footer>
+      <img src={markUrl} alt="Expert Mortgage Pro" width="32" height="32" />
       <p>EMP</p>
     </footer>
   </body>

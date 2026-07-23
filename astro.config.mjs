@@ -32,6 +32,17 @@ const collectionEntries = ['posts', 'shownotes', 'videos'].flatMap((name) =>
 export default defineConfig({
   output: 'static',
   site: SITE,
+  // T15a: emit the brand mark SVG as a real hashed file instead of an inlined
+  // data: URI (Vite's default assetsInlineLimit would inline the small SVG,
+  // which the T8 gate bans and which hides the emp-mark asset reference).
+  // Other assets keep the default inline behavior (the MediaFacade script
+  // must stay inlined — T9 bans <script src> in initial HTML).
+  vite: {
+    build: {
+      assetsInlineLimit: (filePath) =>
+        filePath.endsWith('.svg') ? false : undefined,
+    },
+  },
   integrations: [
     mdx(),
     sitemap({
