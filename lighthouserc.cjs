@@ -31,11 +31,13 @@ module.exports = {
         // Pin a Linux user-data-dir (see tests/run-t10.sh): chrome-launcher's
         // WSL detection would otherwise hand the Linux browser a Windows temp
         // path that gets created literally inside the repo.
-        // --no-sandbox is required on CI runners whose kernel disallows
-        // Chromium's user-namespace sandbox (no setuid helper installed).
+        // R5: --no-sandbox/--disable-dev-shm-usage are unconditional — Chrome
+        // SIGABRTs at launch on GitHub runners without them ("Unable to
+        // connect to Chrome"), and they are harmless locally.
         chromeFlags: [
           `--user-data-dir=${process.env.LHCI_CHROME_USER_DATA_DIR || '.codex-tmp/lhci-chrome-profile'}`,
-          ...(isCI ? ['--no-sandbox'] : []),
+          '--no-sandbox',
+          '--disable-dev-shm-usage',
         ],
       },
     },

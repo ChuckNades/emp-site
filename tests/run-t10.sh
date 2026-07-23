@@ -130,8 +130,11 @@ else
         console.log(`  ${r.url} · ${category} · actual ${actual} · expected ${expected}`);
       }
     ' || echo "  (could not parse $RESULTS)"
+    fail "lhci autorun (one or more URLs below threshold on median-of-$RUNS)"
   else
-    echo "No assertion results at $RESULTS — lhci failed before assert (see output above)."
+    # R5: no assertion-results.json means lhci never reached the assert phase
+    # (e.g. Chrome failed to launch) — say so without the misleading
+    # "below threshold" wording.
+    fail "lhci failed before assert — no assertion results at $RESULTS (see output above)"
   fi
-  fail "lhci autorun (one or more URLs below threshold on median-of-$RUNS)"
 fi
