@@ -53,15 +53,23 @@ for (const route of ISLAND_PAGES) {
     // f. The island root carries data-tool-island (acceptance item).
     expect(html).toContain('data-tool-island');
 
-    // a. Crawler-visible form surface in the RAW HTML.
-    expect(html).toMatch(/<form\b[^>]*method="post"/i);
-    expect(html).not.toMatch(/<form\b[^>]*action=/i);
+    // a. Crawler-visible form surface in the RAW HTML. R8: the shell is
+    //    inert without JS — the island form carries NO method= or action=
+    //    attribute (a default GET onto self is still wrong); onsubmit is the
+    //    markup-level backstop.
+    const islandForm = html.match(/<form\b[^>]*>/i)?.[0] ?? '';
+    expect(islandForm, 'form tag present in raw HTML').not.toBe('');
+    expect(islandForm).not.toMatch(/\smethod\s*=/i);
+    expect(islandForm).not.toMatch(/\saction\s*=/i);
+    expect(islandForm).toMatch(/\sonsubmit\s*=\s*"return false"/i);
     expect(html).toMatch(/<label[^>]*for="loan-amount"[^>]*>\s*Loan amount\s*<\/label>/i);
     expect(html).toMatch(/<label[^>]*for="home-value"[^>]*>\s*Home value\s*<\/label>/i);
     expect(html).toMatch(/<input[^>]*id="loan-amount"[^>]*type="number"/i);
     expect(html).toMatch(/<input[^>]*id="home-value"[^>]*type="number"/i);
     expect(html).toMatch(/<button[^>]*type="submit"[^>]*>\s*Run analysis\s*<\/button>/i);
     expect(html).toMatch(/aria-live="polite"/i);
+    // R8: the noscript notice ships in the raw HTML inside the island.
+    expect(html).toMatch(/<noscript>\s*<p[^>]*>\s*This tool requires JavaScript and is not yet live\.\s*<\/p>\s*<\/noscript>/i);
   });
 
   test(`b+c+d. ${route} submit is fully network-inert and renders the aria-live message`, async ({

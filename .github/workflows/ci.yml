@@ -8,6 +8,10 @@
 # push is content-only. The two lanes are mutually exclusive by commit.
 name: ci
 
+# R8: least-privilege default — no job in this workflow needs more than read.
+permissions:
+  contents: read
+
 on:
   push:
     branches: [dev]

@@ -9,6 +9,10 @@
 # Ratified media bypass — validate-only: build + schema validation (test:t2).
 name: content
 
+# R8: least-privilege default — the validate-only lane needs read access only.
+permissions:
+  contents: read
+
 on:
   push:
     branches: [dev]

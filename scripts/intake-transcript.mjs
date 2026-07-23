@@ -14,9 +14,12 @@
 // - slug: kebab of the title — lowercase, non-alphanumerics → single hyphens,
 //   trimmed, max 60 chars — deduped with a numeric suffix (-2, -3, …) when
 //   the target file already exists.
-// - datePublished: today (ISO date). author: pete. category: flag (default
-//   learn). draft: true ALWAYS.
+// - datePublished: today (LOCAL calendar date, y-m-d). author: pete. category:
+//   flag (default learn). draft: true ALWAYS.
 // - body: the transcript sentences as blank-line-separated paragraphs.
+//   Sentences come from Intl.Segmenter (locale-aware: "Dr. Smith", "3.5
+//   percent", and ellipses stay intact); blank lines in the transcript are
+//   the ONLY paragraph boundaries — sentences never reflow across them.
 import { existsSync, mkdirSync, readFileSync, writeFileSync } from 'node:fs';
 import path from 'node:path';
 
@@ -52,12 +55,46 @@ const lines = raw.split('\n').map((l) => l.trim()).filter((l) => l.length > 0);
 if (lines.length === 0) fail('transcript is empty');
 const firstLine = lines[0];
 
-// Sentences: split on ., !, ? followed by whitespace or end. Trailing
+// Paragraphs: blank lines in the transcript are the ONLY paragraph
+// boundaries — sentences never reflow across them. Each non-blank run of
+// lines is one paragraph; within it, Intl.Segmenter (locale-aware, so
+// decimals like "3.5" and ellipses stay intact) yields the sentences.
+// ICU still breaks after an abbreviation before an uppercase word ("Dr.
+// Smith"), so segments ending in a common abbreviation are rejoined with
+// the next segment — dictated names must survive verbatim. Trailing
 // fragments without terminal punctuation still count as a sentence.
-const body = lines.slice(1).join(' ');
-const sentences = (body.match(/[^.!?]+[.!?]+(?=\s|$)|[^.!?]+$/g) ?? [])
-  .map((s) => s.trim())
-  .filter((s) => s.length > 0);
+const segmenter = new Intl.Segmenter('en', { granularity: 'sentence' });
+const ABBREV = /(?:^|\s)(?:Dr|Mr|Mrs|Ms|St|Jr|Sr|Prof|Gov|Sen|Rep|Gen|Col|Capt|Lt|Sgt|vs|etc|e\.g|i\.e)\.$/;
+function sentencesOf(paragraph) {
+  const out = [];
+  for (const { segment } of segmenter.segment(paragraph)) {
+    if (out.length > 0 && ABBREV.test(out[out.length - 1].trimEnd())) {
+      out[out.length - 1] += segment;
+    } else {
+      out.push(segment);
+    }
+  }
+  return out.map((s) => s.trim()).filter((s) => s.length > 0);
+}
+const rawLines = raw.split('\n');
+// The title is the first non-blank line; the body is everything after it.
+const firstLineIdx = rawLines.findIndex((l) => l.trim().length > 0);
+const paragraphs = [];
+let current = [];
+for (const rawLine of rawLines.slice(firstLineIdx + 1)) {
+  const trimmed = rawLine.trim();
+  if (trimmed.length === 0) {
+    if (current.length > 0) {
+      paragraphs.push(current.join(' '));
+      current = [];
+    }
+  } else {
+    current.push(trimmed);
+  }
+}
+if (current.length > 0) paragraphs.push(current.join(' '));
+
+const sentences = paragraphs.flatMap(sentencesOf);
 if (sentences.length === 0) fail('transcript has no body sentences (needs content after the first line)');
 
 // --- frontmatter fields ----------------------------------------------------
@@ -90,7 +127,9 @@ for (let n = 2; existsSync(path.join(POSTS_DIR, `${slug}.mdx`)); n += 1) {
   slug = `${baseSlug}-${n}`;
 }
 
-const datePublished = new Date().toISOString().slice(0, 10);
+// datePublished: the LOCAL calendar date (sv-SE gives y-m-d), not the UTC
+// ISO slice — a late-evening dictation must not be dated tomorrow.
+const datePublished = new Intl.DateTimeFormat('sv-SE').format(new Date());
 
 // --- emit ------------------------------------------------------------------
 // Quote frontmatter scalars the same way the existing fixtures do; escape any

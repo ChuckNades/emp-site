@@ -95,7 +95,21 @@ if (triggersOk) {
   fail(`workflow triggers wrong (ci push=${JSON.stringify(ciPush)} pr=${JSON.stringify(ciPr)}; content push=${JSON.stringify(cPush)} pr=${JSON.stringify(cPr)})`);
 }
 
-// 3. The lane is decided by the SAME all-match changed-paths guard in both
+// 2b. R8: both workflows carry a top-level least-privilege permissions
+//     block — contents: read and nothing else (no job needs more; the
+//     notify/indexnow stubs need none).
+const permsOk = (doc) =>
+  doc.permissions &&
+  typeof doc.permissions === 'object' &&
+  doc.permissions.contents === 'read' &&
+  Object.keys(doc.permissions).length === 1;
+if (permsOk(ci) && permsOk(content)) {
+  pass('both workflows declare top-level permissions: contents: read (and nothing else)');
+} else {
+  fail(`top-level permissions block missing or too broad (ci: ${JSON.stringify(ci.permissions)}, content: ${JSON.stringify(content.permissions)})`);
+}
+
+
 //    workflows: a git diff --name-only against the before/base SHA whose
 //    content-only test greps for any path OUTSIDE src/content/ or
 //    src/assets/content/. content.yml runs only when content-only; ci.yml

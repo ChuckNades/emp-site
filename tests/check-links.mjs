@@ -367,14 +367,14 @@ const innerOfSectionWith = (html, attr) =>
       const extraTags = [...outside.matchAll(/<([a-zA-Z][a-zA-Z0-9]*)/g)].map((m) => m[1]);
       const laneClean = /^[^<]*$/.test(laneSection.replace(/<\/?(?:ul|li|a)(\s[^>]*)?>/gi, ''));
       const islandClean = /^[^<]*$/.test(
-        islandSection.replace(/<\/?(?:h2|form|div|label|input|button|p)(\s[^>]*)?>/gi, ''),
+        islandSection.replace(/<\/?(?:h2|form|div|label|input|button|p|noscript)(\s[^>]*)?>/gi, ''),
       );
       if (extraTags.length > 0 || !laneClean || !islandClean) {
         fail(
           `floor 9 (home <main> structure): unexpected element(s)` +
             (extraTags.length > 0 ? ` outside h1/sections: ${[...new Set(extraTags)].join(', ')}` : '') +
             (!laneClean ? ' inside the lane <section> beyond ul/li/a' : '') +
-            (!islandClean ? ' inside the island <section> beyond h2/form/div/label/input/button/p' : ''),
+            (!islandClean ? ' inside the island <section> beyond h2/form/div/label/input/button/p/noscript' : ''),
         );
       } else {
         pass('floor 9: home <main> is exactly one <h1> plus the lane <section> plus the ONE tool-island <section>');

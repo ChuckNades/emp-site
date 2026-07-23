@@ -25,7 +25,7 @@ const jsonLd = [
   <h1>Huntsville Market Report</h1>
   {huntsvilleSeed.map((series) => (
     <section aria-labelledby={`series-${huntsvilleSeed.indexOf(series)}`}>
-      <h3 id={`series-${huntsvilleSeed.indexOf(series)}`}>{series.label}</h3>
+      <h2 id={`series-${huntsvilleSeed.indexOf(series)}`}>{series.label}</h2>
       <div class="table-wrap">
         <table>
           <caption>{series.label} ({series.unit})</caption>
@@ -56,8 +56,9 @@ const jsonLd = [
 
 <style>
   /* V1: readable data presentation. Series sections are separated by
-     --space-6; headings render at the h3 scale (the elements above ARE h3);
-     tables sit in overflow-x containers so mobile never scrolls the page
+     --space-6; series headings are h2 (document order h1 → h2) and render at
+     the base h2 scale — no page-local override needed; tables sit in
+     overflow-x containers so mobile never scrolls the page
      horizontally, and on desktop the table is constrained to the prose
      measure. All values resolve to tokens. */
   section + section {

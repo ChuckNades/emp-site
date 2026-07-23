@@ -80,15 +80,41 @@ console.log('PASS: frontmatter draft:true, FIXTURE: title, ISO date, pete, valid
 EOF
 
 # --- b. verbatim transport: every transcript sentence in the body, in order -
+# Mirror of the script's own rules: blank lines are the ONLY paragraph
+# boundaries; Intl.Segmenter("en", sentence) splits within each paragraph.
 node - "$FIXTURE" "$EMITTED_1" <<'EOF' || fail "verbatim transport"
 const fs = require('fs');
 const [fixture, emitted] = process.argv.slice(2);
 const raw = fs.readFileSync(fixture, 'utf8');
-const lines = raw.split('\n').map((l) => l.trim()).filter(Boolean);
-const body = lines.slice(1).join(' ');
-const sentences = (body.match(/[^.!?]+[.!?]+(?=\s|$)|[^.!?]+$/g) ?? []).map((s) => s.trim()).filter(Boolean);
-if (sentences.length < 8 || sentences.length > 12) {
-  console.error(`FAIL: fixture sentence count ${sentences.length} outside the pinned 8-12 range`);
+const rawLines = raw.split('\n');
+const firstLineIdx = rawLines.findIndex((l) => l.trim().length > 0);
+const paragraphs = [];
+let current = [];
+for (const rawLine of rawLines.slice(firstLineIdx + 1)) {
+  const trimmed = rawLine.trim();
+  if (trimmed.length === 0) {
+    if (current.length > 0) { paragraphs.push(current.join(' ')); current = []; }
+  } else {
+    current.push(trimmed);
+  }
+}
+if (current.length > 0) paragraphs.push(current.join(' '));
+const segmenter = new Intl.Segmenter('en', { granularity: 'sentence' });
+const ABBREV = /(?:^|\s)(?:Dr|Mr|Mrs|Ms|St|Jr|Sr|Prof|Gov|Sen|Rep|Gen|Col|Capt|Lt|Sgt|vs|etc|e\.g|i\.e)\.$/;
+const sentences = [];
+for (const p of paragraphs) {
+  const parts = [];
+  for (const { segment } of segmenter.segment(p)) {
+    if (parts.length > 0 && ABBREV.test(parts[parts.length - 1].trimEnd())) {
+      parts[parts.length - 1] += segment;
+    } else {
+      parts.push(segment);
+    }
+  }
+  sentences.push(...parts.map((s) => s.trim()).filter(Boolean));
+}
+if (sentences.length < 8 || sentences.length > 16) {
+  console.error(`FAIL: fixture sentence count ${sentences.length} outside the pinned 8-16 range`);
   process.exit(1);
 }
 const emittedBody = fs.readFileSync(emitted, 'utf8').replace(/^---\n[\s\S]*?\n---\n/, '');
@@ -109,6 +135,33 @@ if (stripped.length !== sentences.length || !stripped.every((p, i) => p === sent
   process.exit(1);
 }
 console.log(`PASS: all ${sentences.length} transcript sentences verbatim, in order, as the only body content`);
+
+// R8: tricky sentences survive verbatim WITHIN their paragraphs — the
+// segmenter must not split "Dr. Smith", "3.5 percent", or an ellipsis, and
+// the blank line in the fixture must be the only paragraph boundary.
+const tricky = [
+  'The speaker once asked Dr. Smith how the routine should be recorded.',
+  'The notes show the review took 3.5 percent of the weekly planning time.',
+  'The speaker paused mid-thought… then finished the sentence anyway.',
+];
+for (const t of tricky) {
+  if (!sentences.includes(t)) {
+    console.error(`FAIL: segmenter split or altered the tricky sentence: "${t.slice(0, 60)}…"`);
+    process.exit(1);
+  }
+  if (!stripped.some((p) => p === t)) {
+    console.error(`FAIL: tricky sentence not transported verbatim as its own paragraph: "${t.slice(0, 60)}…"`);
+    process.exit(1);
+  }
+}
+// The fixture's blank line starts a new paragraph group: the first tricky
+// sentence must NOT share a paragraph with the sentence before the blank.
+const beforeBlank = 'The transcript ends with a simple statement that the habit feels sustainable.';
+if (!stripped.some((p) => p === beforeBlank)) {
+  console.error('FAIL: sentence before the blank line did not remain its own paragraph (reflow across a blank line)');
+  process.exit(1);
+}
+console.log('PASS: "Dr. Smith", "3.5 percent", and the ellipsis survive verbatim within their paragraphs');
 EOF
 
 # --- a2. production build with the emitted drafts present (schema-valid) ----
