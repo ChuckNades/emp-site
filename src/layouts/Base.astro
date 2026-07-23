@@ -1,9 +1,14 @@
 ---
-// Base layout: semantic HTML5 shell + SEO head. Neutral minimal styling only —
-// the identity system lands in a later task (T15b).
+// Base layout: semantic HTML5 shell + SEO head + the T15b identity system.
+// tokens.css (imported below) is the single source of truth for every color,
+// spacing step, breakpoint, and type size; the global <style> block here only
+// APPLIES those tokens — it declares no raw values of its own.
+import '../styles/tokens.css';
 import { SITE } from '../config/site';
 import { HUB_CATEGORIES, HUB_SLUGS, HUB_LABELS } from '../config/hubs';
+import markReversedUrl from '../assets/brand/emp-mark-reversed.svg?url';
 import markUrl from '../assets/brand/emp-mark.svg?url';
+import sourceSans3Url from '../assets/fonts/source-sans-3-latin-var.woff2?url';
 
 interface Props {
   title: string;
@@ -41,6 +46,9 @@ const NAV_LINKS = [
     <link rel="icon" href="/favicon.svg" type="image/svg+xml" />
     <link rel="icon" href="/favicon-32.png" type="image/png" sizes="32x32" />
     <link rel="apple-touch-icon" href="/apple-touch-icon.png" />
+    {/* T15b: preload the primary text face only (Source Sans 3); Literata is
+        article-body-only and loads on demand via font-display: swap. */}
+    <link rel="preload" href={sourceSans3Url} as="font" type="font/woff2" crossorigin />
     <title>{title}</title>
     <meta name="description" content={description} />
     <meta property="og:title" content={title} />
@@ -52,7 +60,7 @@ const NAV_LINKS = [
   </head>
   <body>
     <header>
-      <a href="/"><img src={markUrl} alt="Expert Mortgage Pro" width="40" height="40" /></a>
+      <a href="/"><img src={markReversedUrl} alt="Expert Mortgage Pro" width="40" height="40" /></a>
       <nav aria-label="Main">
         <ul>
           {NAV_LINKS.map(({ href, label }) => (
@@ -70,3 +78,249 @@ const NAV_LINKS = [
     </footer>
   </body>
 </html>
+
+<style is:global>
+  /* T15b identity system — application of the tokens declared in
+     src/styles/tokens.css. No raw color/spacing/type values below; every
+     value resolves to a var(). */
+
+  *,
+  *::before,
+  *::after {
+    box-sizing: border-box;
+  }
+
+  html {
+    /* 1rem baseline for the rem type scale */
+    font-size: 100%;
+  }
+
+  body {
+    margin: 0;
+    background: var(--bg);
+    color: var(--ink);
+    font-family: 'Source Sans 3', 'Source Sans 3 Fallback', system-ui, -apple-system,
+      'Segoe UI', Roboto, 'Helvetica Neue', Arial, sans-serif;
+    font-size: var(--text-body);
+    line-height: 1.6;
+  }
+
+  /* size-adjust-tuned system fallback: declared once so the swap metric jump
+     stays minimal. Values tuned against Source Sans 3's metrics. */
+  @font-face {
+    font-family: 'Source Sans 3 Fallback';
+    src: local('Arial');
+    size-adjust: 102%;
+    ascent-override: 96%;
+    descent-override: 24%;
+    line-gap-override: 0%;
+  }
+  @font-face {
+    font-family: 'Literata Fallback';
+    src: local('Georgia');
+    size-adjust: 100%;
+    ascent-override: 108%;
+    descent-override: 30%;
+    line-gap-override: 0%;
+  }
+
+  /* ---- Type scale ---------------------------------------------------- */
+  h1,
+  h2,
+  h3,
+  h4 {
+    line-height: 1.2; /* within the ratified 1.15-1.25 heading band */
+    font-weight: 700;
+    margin: var(--space-6) 0 var(--space-3);
+  }
+  h1 {
+    font-size: var(--text-h1);
+  }
+  h2 {
+    font-size: var(--text-h2);
+  }
+  h3 {
+    font-size: var(--text-h3);
+  }
+  h4 {
+    font-size: var(--text-h4);
+  }
+  p {
+    margin: 0 0 var(--space-4);
+  }
+  small,
+  figcaption,
+  caption {
+    font-size: var(--text-caption);
+  }
+
+  /* Prose measure */
+  article,
+  .article-body,
+  main p,
+  main li {
+    max-width: var(--measure);
+  }
+
+  /* Literata is bound ONLY to .article-body (cluster/post body text). */
+  .article-body {
+    font-family: 'Literata', 'Literata Fallback', Georgia, 'Times New Roman', serif;
+    font-size: var(--text-article);
+    line-height: 1.7;
+  }
+
+  /* ---- Links & interactive color ------------------------------------- */
+  a {
+    color: var(--teal-interactive);
+    text-decoration-thickness: 1px;
+    text-underline-offset: 2px;
+    transition:
+      color var(--motion-duration) var(--motion-easing),
+      text-decoration-color var(--motion-duration) var(--motion-easing),
+      border-color var(--motion-duration) var(--motion-easing),
+      background-color var(--motion-duration) var(--motion-easing);
+  }
+  /* Accent role 1 of the closed list: link hover underline accent. */
+  a:hover {
+    text-decoration-color: var(--coral);
+  }
+
+  /* Focus: 2px --teal-interactive outline, 2px offset, always visible. */
+  a:focus-visible,
+  button:focus-visible,
+  input:focus-visible,
+  [tabindex]:focus-visible {
+    outline: 2px solid var(--teal-interactive);
+    outline-offset: 2px;
+  }
+
+  /* ---- Header: first teal ground — reversed mark enters use ---------- */
+  header {
+    background: var(--teal);
+    color: var(--bg);
+    padding: var(--space-3) var(--space-5);
+    display: flex;
+    align-items: center;
+    gap: var(--space-5);
+    flex-wrap: wrap;
+  }
+  header a {
+    color: var(--bg);
+  }
+  header nav ul {
+    display: flex;
+    flex-wrap: wrap;
+    gap: var(--space-4);
+    list-style: none;
+    margin: 0;
+    padding: 0;
+  }
+
+  /* ---- Footer: ink ground, bg text ------------------------------------ */
+  footer {
+    background: var(--ink);
+    color: var(--bg);
+    padding: var(--space-6) var(--space-5);
+    margin-top: var(--space-8);
+    display: flex;
+    align-items: center;
+    gap: var(--space-4);
+  }
+  footer p {
+    margin: 0;
+  }
+
+  /* ---- Layout: page max, section padding, responsive grid ------------- */
+  main {
+    max-width: var(--page-max);
+    margin: 0 auto;
+    padding: 0 var(--space-5);
+  }
+  section {
+    padding: var(--space-8) 0;
+  }
+  @media (max-width: 640px) {
+    section {
+      padding: var(--space-6) 0;
+    }
+  }
+
+  /* 12-col grid desktop / 24px gutters -> 6-col at 768 -> 1-col at 640. */
+  .grid {
+    display: grid;
+    grid-template-columns: repeat(12, 1fr);
+    gap: var(--grid-gutter);
+  }
+  @media (max-width: 768px) {
+    .grid {
+      grid-template-columns: repeat(6, 1fr);
+    }
+  }
+  @media (max-width: 640px) {
+    .grid {
+      grid-template-columns: 1fr;
+    }
+  }
+
+  /* ---- Cards & inputs: --surface is cards/inputs only ------------------ */
+  input {
+    background: var(--surface);
+    color: var(--ink);
+    border: 1px solid var(--ink);
+    padding: var(--space-2) var(--space-3);
+    font: inherit;
+  }
+  button {
+    background: var(--teal-interactive);
+    color: var(--surface);
+    border: 0;
+    padding: var(--space-2) var(--space-4);
+    font: inherit;
+    cursor: pointer;
+    transition:
+      background-color var(--motion-duration) var(--motion-easing),
+      border-color var(--motion-duration) var(--motion-easing);
+  }
+
+  /* Accent roles 3 & 4 of the closed list: blockquote/callout left borders
+     and card hover borders. */
+  blockquote {
+    margin: var(--space-5) 0;
+    padding: var(--space-2) 0 var(--space-2) var(--space-4);
+    border-left: 4px solid var(--coral);
+  }
+  .card {
+    background: var(--surface);
+    border: 1px solid transparent;
+    padding: var(--space-5);
+    transition: border-color var(--motion-duration) var(--motion-easing);
+  }
+  .card:hover {
+    border-color: var(--gold);
+  }
+
+  /* Accent role 2: eyebrow labels on --ink/--teal surfaces only. The accent
+     color is applied ONLY when the eyebrow sits on an ink or teal ground, so
+     coral/gold never render as text on the light --bg page. */
+  footer .eyebrow,
+  header .eyebrow,
+  .on-ink .eyebrow,
+  .on-teal .eyebrow {
+    color: var(--gold);
+  }
+  .eyebrow {
+    font-size: var(--text-caption);
+    letter-spacing: 0.06em;
+    text-transform: uppercase;
+  }
+
+  /* ---- Motion: prefers-reduced-motion collapses to none ---------------- */
+  @media (prefers-reduced-motion: reduce) {
+    *,
+    *::before,
+    *::after {
+      transition: none !important;
+      animation: none !important;
+    }
+  }
+</style>

@@ -1,0 +1,70 @@
+/* T15b — ratified identity system tokens. Single source of truth; imported by
+   Base.astro. Every color, spacing step, breakpoint, and type size below is
+   declared in T15b-TASK.md — nothing here is invented. */
+
+/* Self-hosted variable fonts (latin subset, wght axis only). font-display:
+   swap; size-adjust-tuned system fallbacks are declared on the body stack in
+   Base.astro's global styles. */
+@font-face {
+  font-family: 'Source Sans 3';
+  font-style: normal;
+  font-weight: 400 700;
+  font-display: swap;
+  src: url('../assets/fonts/source-sans-3-latin-var.woff2') format('woff2');
+}
+@font-face {
+  font-family: 'Literata';
+  font-style: normal;
+  font-weight: 400 700;
+  font-display: swap;
+  src: url('../assets/fonts/literata-latin-var.woff2') format('woff2');
+}
+
+:root {
+  /* Brand colors (roles per T15b-TASK.md) */
+  --teal: #0F8B8D; /* brand anchor: fields, banners, large display text >=24px/700, mark ground */
+  --teal-interactive: #0C7779; /* buttons, links, normal-size teal text on light (5.0:1 on --bg) */
+  --teal-tint-80: #3FA2A4; /* decorative on light; text only on --ink */
+  --teal-tint-60: #6FBABB; /* decorative on light; text only on --ink */
+  --coral: #FF6B5C; /* accent, decorative on light/teal; semantic only on --ink */
+  --gold: #FFB13C; /* accent/spark, same rule */
+  --ink: #1F2933; /* body text; dark surface where accents may carry meaning */
+  --bg: #FAF7F2; /* page background */
+  --surface: #FFFFFF; /* cards/inputs only, never full-page */
+
+  /* Spacing scale (px) */
+  --space-1: 4px;
+  --space-2: 8px;
+  --space-3: 12px;
+  --space-4: 16px;
+  --space-5: 24px;
+  --space-6: 32px;
+  --space-7: 48px;
+  --space-8: 64px;
+  --space-9: 96px;
+
+  /* Layout */
+  --page-max: 1200px;
+  --measure: 72ch; /* prose measure */
+  --grid-gutter: 24px;
+
+  /* Breakpoints (px) — 12-col desktop -> 6-col at 768 -> 1-col at 640 */
+  --bp-sm: 640px;
+  --bp-md: 768px;
+  --bp-lg: 1024px;
+  --bp-xl: 1280px;
+
+  /* Type scale (rem) */
+  --text-caption: 0.8rem;
+  --text-body: 1rem;
+  --text-h4: 1.25rem;
+  --text-h3: 1.563rem;
+  --text-h2: 1.953rem;
+  --text-h1: 2.441rem;
+  --text-display: 3.052rem; /* home hero only */
+  --text-article: 1.125rem; /* Literata article body */
+
+  /* Motion: 150-200ms ease-out hover/focus only */
+  --motion-duration: 180ms;
+  --motion-easing: ease-out;
+}

@@ -71,7 +71,9 @@ if (post.data.faq && post.data.faq.length > 0) {
   </nav>
   <article>
     <h1>{post.data.title}</h1>
-    <Content />
+    <div class="article-body">
+      <Content />
+    </div>
   </article>
   {
     siblings.length > 0 && (

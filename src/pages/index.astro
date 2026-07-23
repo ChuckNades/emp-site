@@ -15,7 +15,7 @@ const LANES = [
 ---
 
 <Base title="EMP" description="Expert Mortgage Pro">
-  <h1>EMP</h1>
+  <h1 class="display">EMP</h1>
   <section>
     <ul>
       {LANES.map(({ href, label, descriptor }) => (
@@ -26,3 +26,12 @@ const LANES = [
   <ToolIsland />
   <script slot="jsonld" type="application/ld+json" set:html={serializeJsonLd(jsonLd)} />
 </Base>
+
+<style>
+  /* T15b: the 3.052rem display size is bound to the home hero ONLY. */
+  .display {
+    font-size: var(--text-display);
+    color: var(--teal); /* brand anchor: large display text >=24px/700 */
+    line-height: 1.15;
+  }
+</style>
