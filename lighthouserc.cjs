@@ -7,8 +7,11 @@ const base = process.env.LHCI_BASE_URL || 'http://localhost:44310';
 // R3: shared GitHub runners are noisy — in CI collect a stricter sample
 // (median of 5 runs per URL) to absorb perf variance. Same thresholds, same
 // mobile preset; only the sample count changes. Locally stays median-of-3.
-// Set LHCI_CI=1 in the CI step that runs test:t10.
+// R4: the sample count is wired for real — numberOfRuns reads LHCI_RUNS
+// (default 3); ci.yml's t10 step sets LHCI_RUNS=5, and run-t10.sh echoes the
+// effective count at start. Set LHCI_CI=1 in the CI step that runs test:t10.
 const isCI = process.env.LHCI_CI === '1';
+const numberOfRuns = Number.parseInt(process.env.LHCI_RUNS || '3', 10);
 
 module.exports = {
   ci: {
@@ -19,7 +22,7 @@ module.exports = {
         `${base}/learn/post-fixture/`,
         `${base}/faq/`,
       ],
-      numberOfRuns: isCI ? 5 : 3,
+      numberOfRuns,
       // No `preset` here: LHCI's 'perf' preset restricts collection to the
       // performance category only. Lighthouse's default settings are already
       // the mobile emulation preset (mobile form factor, simulated throttling),

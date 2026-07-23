@@ -25,6 +25,9 @@ jobs:
 
       # Inverse of content.yml: skip the battery when EVERY changed path is
       # ratified content/media (that push takes the validate-only bypass).
+      # A skip is SUCCESS: the guard prints a notice and exits 0 with
+      # content_only=true, and every later step is gated on that output, so
+      # the skipped run completes green having executed nothing.
       # Safe default: any guard-mechanics failure (missing/zero before SHA,
       # shallow clone, any git error) resolves to NOT content-only — the
       # battery RUNS — with a logged notice. The guard never fails the job
@@ -55,61 +58,81 @@ jobs:
           fi
           if [ -n "$changed" ] && ! echo "$changed" | grep -qv -e '^src/content/' -e '^src/assets/content/'; then
             echo "changed-paths: content-only push — skipping the full battery (content.yml takes this push)"
-            exit 1
+            echo "content_only=true" >> "$GITHUB_OUTPUT"
+            exit 0
           fi
           echo "changed-paths: non-content path present (or guard defaulted safe) — running the full battery"
+          echo "content_only=false" >> "$GITHUB_OUTPUT"
 
       - uses: actions/setup-node@v4
+        if: steps.gate.outputs.content_only == 'false'
         with:
           node-version: 22
           cache: npm
 
       - name: install
+        if: steps.gate.outputs.content_only == 'false'
         run: npm ci
 
       - name: install playwright chromium
+        if: steps.gate.outputs.content_only == 'false'
         run: npx playwright install --with-deps chromium
 
       - name: build
+        if: steps.gate.outputs.content_only == 'false'
         run: npm run build
 
       - name: test:jsonld
+        if: steps.gate.outputs.content_only == 'false'
         run: npm run test:jsonld
 
       - name: test:t2
+        if: steps.gate.outputs.content_only == 'false'
         run: npm run test:t2
 
       - name: test:t4
+        if: steps.gate.outputs.content_only == 'false'
         run: npm run test:t4
 
       - name: test:t5
+        if: steps.gate.outputs.content_only == 'false'
         run: npm run test:t5
 
       - name: test:t6
+        if: steps.gate.outputs.content_only == 'false'
         run: npm run test:t6
 
       - name: test:t7
+        if: steps.gate.outputs.content_only == 'false'
         run: npm run test:t7
 
       - name: test:t8
+        if: steps.gate.outputs.content_only == 'false'
         run: npm run test:t8
 
       - name: test:t9
+        if: steps.gate.outputs.content_only == 'false'
         run: npm run test:t9
 
       - name: test:t10
+        if: steps.gate.outputs.content_only == 'false'
         run: npm run test:t10
         env:
-          # R3: median-of-5 + --no-sandbox on shared runners (lighthouserc.cjs).
+          # R3: --no-sandbox on shared runners (lighthouserc.cjs).
+          # R4: median-of-5 sample in CI (LHCI_RUNS, read by lighthouserc.cjs).
           LHCI_CI: "1"
+          LHCI_RUNS: "5"
 
       - name: test:t13
+        if: steps.gate.outputs.content_only == 'false'
         run: npm run test:t13
 
       - name: test:t15a
+        if: steps.gate.outputs.content_only == 'false'
         run: npm run test:t15a
 
       - name: test:t17
+        if: steps.gate.outputs.content_only == 'false'
         run: npm run test:t17
 
   # T14: alert stub. Fires only when the gate battery fails. The destination

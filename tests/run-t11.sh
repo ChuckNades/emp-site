@@ -93,16 +93,34 @@ if (triggersOk) {
 //    workflows fetch full history (fetch-depth: 0), tolerate a missing/zero
 //    before SHA (empty-tree diff), and resolve any git error to the safe
 //    default (ci.yml runs the battery, content.yml skips) with a logged notice.
+//    R4: a skip is SUCCESS — the guard writes a content_only=true/false step
+//    output and exits 0, and every subsequent step is gated on that output,
+//    so a skipped run completes green having executed nothing.
 const guardBits = ['git diff --name-only', 'github.event.before', '^src/content/', '^src/assets/content/'];
 const safeBits = ['fetch-depth: 0', '0000000000000000000000000000000000000000', '4b825dc642cb6eb9a060e54bf8d69288fbee4904', '2>&1', 'notice'];
+const r4Bits = ['content_only=true', 'content_only=false', "$GITHUB_OUTPUT", "if: steps.gate.outputs.content_only =="];
 const ciGuardOk = guardBits.every((b) => ciText.includes(b)) && /content-only/.test(ciText) &&
-  safeBits.every((b) => ciText.includes(b)) && /defaulting to NOT content-only/.test(ciText);
+  safeBits.every((b) => ciText.includes(b)) && /defaulting to NOT content-only/.test(ciText) &&
+  r4Bits.every((b) => ciText.includes(b)) && ciText.includes("if: steps.gate.outputs.content_only == 'false'");
 const contentGuardOk = guardBits.every((b) => contentText.includes(b)) && /content-only/.test(contentText) &&
-  safeBits.every((b) => contentText.includes(b)) && /defaulting to NOT content-only/.test(contentText);
+  safeBits.every((b) => contentText.includes(b)) && /defaulting to NOT content-only/.test(contentText) &&
+  r4Bits.every((b) => contentText.includes(b)) && contentText.includes("if: steps.gate.outputs.content_only == 'true'");
 if (ciGuardOk && contentGuardOk) {
-  pass('both workflows gate on the same all-match changed-paths guard with safe-default mechanics');
+  pass('both workflows gate on the same all-match changed-paths guard with safe-default mechanics and exit-0 skip gating');
 } else {
-  fail(`changed-paths guard missing or unsafe (ci ok: ${ciGuardOk}, content ok: ${contentGuardOk})`);
+  fail(`changed-paths guard missing, unsafe, or not exit-0-gated (ci ok: ${ciGuardOk}, content ok: ${contentGuardOk})`);
+}
+
+// 3b. R4: the guard step never exits nonzero — a skip is success, with all
+//     subsequent steps gated on the content_only output.
+const guardRunBlock = (text) => (text.match(/id: gate\n\s+run: \|([\s\S]*?)\n\n/) || [])[1] || '';
+const ciGuardRun = guardRunBlock(ciText);
+const contentGuardRun = guardRunBlock(contentText);
+const exitZeroOnly = (run) => run.includes('exit 0') && !/exit [1-9]/.test(run);
+if (ciGuardRun && contentGuardRun && exitZeroOnly(ciGuardRun) && exitZeroOnly(contentGuardRun)) {
+  pass('both guard steps exit 0 on skip (no nonzero exit in the guard run block)');
+} else {
+  fail(`guard step can still exit nonzero (ci run block ok: ${!!ciGuardRun && exitZeroOnly(ciGuardRun)}, content ok: ${!!contentGuardRun && exitZeroOnly(contentGuardRun)})`);
 }
 
 // 4. content.yml runs build + test:t2 only.
@@ -115,6 +133,22 @@ if (cStepsOk) {
   pass('content.yml runs build + test:t2 only');
 } else {
   fail(`content.yml steps wrong: ${JSON.stringify(cRuns)}`);
+}
+
+// 4b. R4: the CI Lighthouse sample count is wired for real — lighthouserc.cjs
+//     reads LHCI_RUNS (default 3) for numberOfRuns, the ci.yml t10 step sets
+//     LHCI_RUNS=5, and run-t10.sh echoes the effective count at start.
+const lhciRc = fs.readFileSync('lighthouserc.cjs', 'utf8');
+const t10 = fs.readFileSync('tests/run-t10.sh', 'utf8');
+const t10Step = (ci.jobs?.gate?.steps || []).find((s) => (s.run || '').includes('npm run test:t10'));
+const lhciWired =
+  /LHCI_RUNS/.test(lhciRc) && /numberOfRuns/.test(lhciRc) &&
+  t10Step && t10Step.env && String(t10Step.env.LHCI_RUNS) === '5' &&
+  /echo .*numberOfRuns=\$RUNS/.test(t10);
+if (lhciWired) {
+  pass('LHCI_RUNS wired: lighthouserc.cjs reads it, ci.yml t10 sets 5, run-t10.sh echoes it');
+} else {
+  fail('LHCI_RUNS wiring incomplete (lighthouserc.cjs read, ci.yml env, or run-t10.sh echo missing)');
 }
 
 // 5. notify-failure exists with if: failure() and reads the webhook

@@ -2,9 +2,11 @@
 # T10 test mechanism: Lighthouse CI gates.
 # Installs the valid fixture set (same collection_for mapping as run-t2),
 # builds, serves dist/ via `astro preview` on a fixed port, runs
-# `lhci autorun` (collect: median of 3 runs per URL on the mobile preset;
-# assert: category-score thresholds from lighthouserc.cjs), then cleans up
-# fixtures and the server. Exits nonzero on any failure.
+# `lhci autorun` (collect: median of LHCI_RUNS runs per URL — default 3,
+# echoed at start — on the mobile preset; assert: category-score thresholds
+# from lighthouserc.cjs), then cleans up fixtures and the server. On an lhci
+# failure it prints one line per failed assertion (url · category · actual ·
+# expected) from .lighthouseci/assertion-results.json before exiting nonzero.
 set -u
 cd "$(dirname "$0")/.."
 
@@ -103,8 +105,33 @@ if [ "$ready" -ne 1 ]; then
   fail "astro preview did not start on $BASE_URL"
 fi
 
+# R4: echo the effective Lighthouse sample count (lighthouserc.cjs reads
+# LHCI_RUNS, default 3; ci.yml sets LHCI_RUNS=5) so the log proves which
+# sample the run used.
+RUNS="${LHCI_RUNS:-3}"
+echo "T10: Lighthouse sample count — numberOfRuns=$RUNS (LHCI_RUNS=${LHCI_RUNS:-<unset, default 3>})"
+
 if LHCI_BASE_URL="$BASE_URL" npx lhci autorun; then
   echo "All T10 Lighthouse gates passed."
 else
-  fail "lhci autorun (one or more URLs below threshold on median-of-3)"
+  # R4: surface the failure detail — one line per failed assertion
+  # (url · category · actual · expected) from the lhci assertion results —
+  # before exiting nonzero. No more blind FAIL lines.
+  RESULTS=".lighthouseci/assertion-results.json"
+  if [ -f "$RESULTS" ]; then
+    echo "Failed Lighthouse assertions (url · category · actual · expected):"
+    node -e '
+      const results = JSON.parse(require("fs").readFileSync(".lighthouseci/assertion-results.json", "utf8"));
+      for (const r of results) {
+        if (r.passed) continue;
+        const category = r.auditId || r.name || "?";
+        const actual = r.actual !== undefined ? JSON.stringify(r.actual) : "?";
+        const expected = r.expected !== undefined ? JSON.stringify(r.expected) : (r.operator || "?");
+        console.log(`  ${r.url} · ${category} · actual ${actual} · expected ${expected}`);
+      }
+    ' || echo "  (could not parse $RESULTS)"
+  else
+    echo "No assertion results at $RESULTS — lhci failed before assert (see output above)."
+  fi
+  fail "lhci autorun (one or more URLs below threshold on median-of-$RUNS)"
 fi

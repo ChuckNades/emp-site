@@ -2,7 +2,8 @@
 # matches, but the ratified bypass requires EVERY changed file to be a content
 # path. So this workflow triggers on ALL dev pushes (and PRs into main), then
 # its single job FIRST runs a changed-paths check and SKIPS (exits success,
-# running nothing else) unless every changed path is ratified content/media
+# running nothing else — later steps are gated on the guard's content_only
+# output) unless every changed path is ratified content/media
 # (src/content/** or src/assets/content/**). Brand assets
 # (src/assets/brand/**) are NOT bypass paths and take the full ci.yml gate.
 # Ratified media bypass — validate-only: build + schema validation (test:t2).
@@ -24,8 +25,11 @@ jobs:
           fetch-depth: 0
 
       # Decide the lane: content-only iff EVERY changed path is under
-      # src/content/** or src/assets/content/**. Exits 1 (skipping the rest)
-      # when the push is not content-only — ci.yml takes those.
+      # src/content/** or src/assets/content/**. A skip is SUCCESS: when the
+      # push is not content-only the guard prints a notice and exits 0 with
+      # content_only=false, and every later step is gated on that output, so
+      # the skipped run completes green having executed nothing (ci.yml takes
+      # those pushes).
       # Safe default: any guard-mechanics failure (missing/zero before SHA,
       # shallow clone, any git error) resolves to NOT content-only — the
       # bypass SKIPS — with a logged notice. The guard never fails the job
@@ -55,28 +59,35 @@ jobs:
             changed=""
           fi
           if [ -z "$changed" ]; then
-            echo "changed-paths: no changed files (or guard defaulted safe) — not content-only"
-            exit 1
+            echo "changed-paths: no changed files (or guard defaulted safe) — not content-only; skipping bypass"
+            echo "content_only=false" >> "$GITHUB_OUTPUT"
+            exit 0
           fi
           echo "changed-paths: changed files:"
           echo "$changed"
           # Any changed path OUTSIDE the ratified content roots -> not content-only.
           if echo "$changed" | grep -qv -e '^src/content/' -e '^src/assets/content/'; then
-            echo "changed-paths: non-content path present — not content-only (ci.yml takes this push)"
-            exit 1
+            echo "changed-paths: non-content path present — not content-only; skipping bypass (ci.yml takes this push)"
+            echo "content_only=false" >> "$GITHUB_OUTPUT"
+            exit 0
           fi
           echo "changed-paths: every changed path is content — running validate-only bypass"
+          echo "content_only=true" >> "$GITHUB_OUTPUT"
 
       - uses: actions/setup-node@v4
+        if: steps.gate.outputs.content_only == 'true'
         with:
           node-version: 22
           cache: npm
 
       - name: install
+        if: steps.gate.outputs.content_only == 'true'
         run: npm ci
 
       - name: build
+        if: steps.gate.outputs.content_only == 'true'
         run: npm run build
 
       - name: test:t2
+        if: steps.gate.outputs.content_only == 'true'
         run: npm run test:t2
