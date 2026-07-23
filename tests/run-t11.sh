@@ -89,13 +89,20 @@ if (triggersOk) {
 //    content-only test greps for any path OUTSIDE src/content/ or
 //    src/assets/content/. content.yml runs only when content-only; ci.yml
 //    skips exactly then — mutually exclusive by commit.
+//    R3: the guard must never fail the job on its own mechanics — both
+//    workflows fetch full history (fetch-depth: 0), tolerate a missing/zero
+//    before SHA (empty-tree diff), and resolve any git error to the safe
+//    default (ci.yml runs the battery, content.yml skips) with a logged notice.
 const guardBits = ['git diff --name-only', 'github.event.before', '^src/content/', '^src/assets/content/'];
-const ciGuardOk = guardBits.every((b) => ciText.includes(b)) && /content-only/.test(ciText);
-const contentGuardOk = guardBits.every((b) => contentText.includes(b)) && /content-only/.test(contentText);
+const safeBits = ['fetch-depth: 0', '0000000000000000000000000000000000000000', '4b825dc642cb6eb9a060e54bf8d69288fbee4904', '2>&1', 'notice'];
+const ciGuardOk = guardBits.every((b) => ciText.includes(b)) && /content-only/.test(ciText) &&
+  safeBits.every((b) => ciText.includes(b)) && /defaulting to NOT content-only/.test(ciText);
+const contentGuardOk = guardBits.every((b) => contentText.includes(b)) && /content-only/.test(contentText) &&
+  safeBits.every((b) => contentText.includes(b)) && /defaulting to NOT content-only/.test(contentText);
 if (ciGuardOk && contentGuardOk) {
-  pass('both workflows gate on the same all-match changed-paths (git diff) guard');
+  pass('both workflows gate on the same all-match changed-paths guard with safe-default mechanics');
 } else {
-  fail(`changed-paths guard missing (ci ok: ${ciGuardOk}, content ok: ${contentGuardOk})`);
+  fail(`changed-paths guard missing or unsafe (ci ok: ${ciGuardOk}, content ok: ${contentGuardOk})`);
 }
 
 // 4. content.yml runs build + test:t2 only.

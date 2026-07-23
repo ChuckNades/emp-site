@@ -25,29 +25,39 @@ jobs:
 
       # Inverse of content.yml: skip the battery when EVERY changed path is
       # ratified content/media (that push takes the validate-only bypass).
+      # Safe default: any guard-mechanics failure (missing/zero before SHA,
+      # shallow clone, any git error) resolves to NOT content-only — the
+      # battery RUNS — with a logged notice. The guard never fails the job
+      # on its own mechanics.
       - name: changed-paths check (skip when content-only)
         id: gate
         run: |
-          set -euo pipefail
+          set -uo pipefail
+          changed=""
           if [ "${{ github.event_name }}" = "pull_request" ]; then
             BASE="${{ github.event.pull_request.base.sha }}"
             RANGE="$BASE..${{ github.sha }}"
           else
             BASE="${{ github.event.before }}"
-            # A brand-new branch has an all-zero before SHA; diff against the
-            # empty tree so every file in the push counts as changed.
-            if [ "$BASE" = "0000000000000000000000000000000000000000" ]; then
+            # A brand-new branch / force push can carry an all-zero or empty
+            # before SHA; diff against the empty tree so every file in the
+            # push counts as changed.
+            if [ -z "$BASE" ] || [ "$BASE" = "0000000000000000000000000000000000000000" ]; then
+              echo "changed-paths: notice — missing/zero before SHA; diffing against the empty tree"
               RANGE="4b825dc642cb6eb9a060e54bf8d69288fbee4904 ${{ github.sha }}"
             else
               RANGE="$BASE..${{ github.sha }}"
             fi
           fi
-          changed="$(git diff --name-only $RANGE)"
+          if ! changed="$(git diff --name-only $RANGE 2>&1)"; then
+            echo "changed-paths: notice — git diff failed ($changed); defaulting to NOT content-only"
+            changed=""
+          fi
           if [ -n "$changed" ] && ! echo "$changed" | grep -qv -e '^src/content/' -e '^src/assets/content/'; then
             echo "changed-paths: content-only push — skipping the full battery (content.yml takes this push)"
             exit 1
           fi
-          echo "changed-paths: non-content path present — running the full battery"
+          echo "changed-paths: non-content path present (or guard defaulted safe) — running the full battery"
 
       - uses: actions/setup-node@v4
         with:
@@ -89,6 +99,9 @@ jobs:
 
       - name: test:t10
         run: npm run test:t10
+        env:
+          # R3: median-of-5 + --no-sandbox on shared runners (lighthouserc.cjs).
+          LHCI_CI: "1"
 
       - name: test:t13
         run: npm run test:t13
