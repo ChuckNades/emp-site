@@ -1,6 +1,6 @@
 ---
 import Base from '../layouts/Base.astro';
-import { breadcrumbJsonLd } from '../lib/jsonld';
+import { serializeJsonLd, breadcrumbJsonLd } from '../lib/jsonld';
 
 const jsonLd = [
   breadcrumbJsonLd([
@@ -13,5 +13,5 @@ const jsonLd = [
 <Base title="Results" description="Results">
   <h1>Results</h1>
   <p>Results are being compiled.</p>
-  <script slot="jsonld" type="application/ld+json" set:html={JSON.stringify(jsonLd)} />
+  <script slot="jsonld" type="application/ld+json" set:html={serializeJsonLd(jsonLd)} />
 </Base>

@@ -29,6 +29,14 @@ export type JsonLd = WithContext<
   Organization | MortgageBroker | BreadcrumbList | ProfilePage | Person | Article | FAQPage | VideoObject
 >;
 
+// Serialize JSON-LD for safe injection via set:html: every `<` is escaped as
+// < so a value containing `</script>` can never break out of the
+// script element. The escaped form is still valid JSON (JSON.parse handles
+// unicode escapes). ALL JSON-LD script tags must use this helper.
+export function serializeJsonLd(value: JsonLd | JsonLd[]): string {
+  return JSON.stringify(value).replace(/</g, '\\u003c');
+}
+
 export function organizationJsonLd(): WithContext<Organization> {
   return {
     '@context': 'https://schema.org',

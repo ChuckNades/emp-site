@@ -1,6 +1,6 @@
 ---
 import Base from '../layouts/Base.astro';
-import { hubMortgageBrokerJsonLd, breadcrumbJsonLd } from '../lib/jsonld';
+import { serializeJsonLd, hubMortgageBrokerJsonLd, breadcrumbJsonLd } from '../lib/jsonld';
 import { huntsvilleAddress } from '../data/facts';
 import { HUB_SLUGS } from '../config/hubs';
 
@@ -30,5 +30,5 @@ const jsonLd = [
       <li><a href={HUB_SLUGS.partners}>Grow</a></li>
     </ul>
   </section>
-  <script slot="jsonld" type="application/ld+json" set:html={JSON.stringify(jsonLd)} />
+  <script slot="jsonld" type="application/ld+json" set:html={serializeJsonLd(jsonLd)} />
 </Base>

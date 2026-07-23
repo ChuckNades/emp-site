@@ -108,7 +108,12 @@ const watchUrl = active ? `https://www.youtube.com/watch?v=${youtubeId}` : undef
           iframe.allow =
             'accelerometer; autoplay; clipboard-write; encrypted-media; gyroscope; picture-in-picture';
           iframe.setAttribute('allowfullscreen', '');
+          // R1: make the iframe focusable and move focus to it after the
+          // click-swap so keyboard/AT users land on the player, not on a
+          // removed button.
+          iframe.tabIndex = -1;
           this.querySelector('button')?.replaceWith(iframe);
+          iframe.focus();
         }
       },
     );

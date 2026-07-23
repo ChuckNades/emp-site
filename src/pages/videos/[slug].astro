@@ -4,7 +4,7 @@
 import { getCollection, render, type CollectionEntry } from 'astro:content';
 import Base from '../../layouts/Base.astro';
 import MediaFacade from '../../components/MediaFacade.astro';
-import { breadcrumbJsonLd, videoJsonLd, type JsonLd } from '../../lib/jsonld';
+import { serializeJsonLd, breadcrumbJsonLd, videoJsonLd, type JsonLd } from '../../lib/jsonld';
 
 export async function getStaticPaths() {
   const videos = await getCollection('videos', ({ data }) =>
@@ -49,5 +49,5 @@ const jsonLd: JsonLd[] = [
     <MediaFacade kind="youtube" youtubeId={video.data.youtubeId} title={video.data.title} />
     <Content />
   </article>
-  <script slot="jsonld" type="application/ld+json" set:html={JSON.stringify(jsonLd)} />
+  <script slot="jsonld" type="application/ld+json" set:html={serializeJsonLd(jsonLd)} />
 </Base>

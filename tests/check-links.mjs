@@ -237,21 +237,29 @@ const hrefsWithText = (html, text) => {
 }
 
 // 6. Zero broken internal links anywhere in dist/. Fragment hrefs require the
-//    target id to exist in the destination page.
+//    target id to exist in the destination page. R1: relative hrefs are
+//    resolved against the page's own route, then get the same existence
+//    checks (none exist today — this guards the future).
 {
   let bad = 0;
   for (const [route, html] of htmlByRoute) {
     const ids = idsOf(html);
     for (const href of hrefsOf(html)) {
       if (/^(https?:)?\/\//i.test(href) || /^(mailto|tel):/i.test(href)) continue;
-      if (!href.startsWith('/') && !href.startsWith('#')) continue; // relative; none today
+      let resolved = href;
+      if (!href.startsWith('/') && !href.startsWith('#')) {
+        // Relative href: resolve against the page's route (a directory URL
+        // ending in '/'), then fall through to the same checks.
+        resolved = new URL(href, `https://local${route}`).pathname;
+        if (resolved === route) continue; // resolves to the page itself
+      }
       let targetRoute;
       let fragment;
-      if (href.startsWith('#')) {
+      if (resolved.startsWith('#')) {
         targetRoute = route;
-        fragment = href.slice(1);
+        fragment = resolved.slice(1);
       } else {
-        const [p, f] = href.split('#');
+        const [p, f] = resolved.split('#');
         targetRoute = p;
         fragment = f;
       }
@@ -299,10 +307,16 @@ const innerOf = (html, tag) => html.match(new RegExp(`<${tag}[^>]*>([\\s\\S]*?)<
 }
 
 // 8. The <nav> element on every page contains links to all three hubs and
-//    /faq/.
+//    /faq/, and carries aria-label="Main" (R1: the global nav landmark must
+//    be labeled distinctly from breadcrumb/related navs).
 {
   let bad = 0;
   for (const [route, html] of htmlByRoute) {
+    const navMatch = html.match(/<nav\b[^>]*>/i);
+    if (!navMatch || !/\baria-label="Main"/i.test(navMatch[0])) {
+      fail(`floor 8 (global nav): ${route} <nav> missing aria-label="Main"`);
+      bad += 1;
+    }
     const hrefs = hrefsOf(innerOf(html, 'nav'));
     for (const target of [...CATEGORIES.map(hubPath), '/faq/']) {
       if (!hrefs.includes(target)) {
@@ -311,7 +325,7 @@ const innerOf = (html, tag) => html.match(new RegExp(`<${tag}[^>]*>([\\s\\S]*?)<
       }
     }
   }
-  if (bad === 0) pass('floor 8: every page <nav> links to all three hubs and /faq/');
+  if (bad === 0) pass('floor 8: every page <nav> links to all three hubs and /faq/ and has aria-label="Main"');
 }
 
 // 9. Home's <main> contains exactly one <h1> and one <section> and no other

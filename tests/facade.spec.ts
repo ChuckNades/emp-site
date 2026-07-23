@@ -32,6 +32,10 @@ test('b. clicking the facade loads the youtube-nocookie embed', async ({ page })
     timeout: 15_000,
   });
   expect(embedRequests.length).toBeGreaterThanOrEqual(1);
+
+  // R1: after the click-swap, focus moves to the injected iframe.
+  const activeTag = await page.evaluate(() => document.activeElement?.tagName);
+  expect(activeTag).toBe('IFRAME');
 });
 
 test('c. initial HTML has no iframe and no embed-domain strings outside noscript/JSON-LD', async ({

@@ -4,7 +4,7 @@
 // it never creates a second route. Slugs resolve through src/config/hubs.ts.
 import { getCollection, render, type CollectionEntry } from 'astro:content';
 import Base from '../../layouts/Base.astro';
-import { articleJsonLd, breadcrumbJsonLd, faqPageJsonLd, type JsonLd } from '../../lib/jsonld';
+import { serializeJsonLd, articleJsonLd, breadcrumbJsonLd, faqPageJsonLd, type JsonLd } from '../../lib/jsonld';
 import { HUB_LABELS, HUB_PARAMS, HUB_SLUGS, hubCategoryForParam } from '../../config/hubs';
 
 export async function getStaticPaths() {
@@ -87,5 +87,5 @@ if (post.data.faq && post.data.faq.length > 0) {
       </nav>
     )
   }
-  <script slot="jsonld" type="application/ld+json" set:html={JSON.stringify(jsonLd)} />
+  <script slot="jsonld" type="application/ld+json" set:html={serializeJsonLd(jsonLd)} />
 </Base>

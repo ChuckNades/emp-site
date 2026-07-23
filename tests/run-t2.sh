@@ -57,6 +57,35 @@ else
   fail "draft exclusion (draft fixture content found in dist/)"
 fi
 
+# b2. R1 regression: the breakout fixture's title carries
+#     `</script><script>alert(1)`. Its built page's JSON-LD payload must
+#     contain NO literal `</script>` (the `<` is escaped as <),
+#     and the escaped JSON must still parse.
+node - <<'EOF' || fail "JSON-LD breakout escaping"
+const fs = require('fs');
+const html = fs.readFileSync('dist/learn/jsonld-breakout/index.html', 'utf8');
+const blocks = [
+  ...html.matchAll(/<script\b[^>]*type=["']application\/ld\+json["'][^>]*>([\s\S]*?)<\/script>/gi),
+];
+if (blocks.length === 0) {
+  console.error('FAIL: no JSON-LD blocks on breakout fixture page');
+  process.exit(1);
+}
+for (const block of blocks) {
+  const payload = block[1];
+  if (payload.includes('</script>')) {
+    console.error('FAIL: JSON-LD payload contains a literal </script> (breakout not escaped)');
+    process.exit(1);
+  }
+  if (!payload.includes('\\u003c/script>')) {
+    console.error('FAIL: JSON-LD payload missing the escaped <\\/script> form');
+    process.exit(1);
+  }
+  JSON.parse(payload); // throws if the escaped form is not valid JSON
+}
+console.log('PASS: JSON-LD breakout escaping (no literal </script>, escaped JSON parses)');
+EOF
+
 # c. Each invalid fixture alone (with the valid set) must make the build fail.
 for f in "$FIXTURES_DIR"/invalid/*; do
   name="$(basename "$f")"

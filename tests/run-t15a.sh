@@ -49,11 +49,11 @@ fi
 
 # a. Quarantine grep: zero references anywhere in the repo (excluding
 #    node_modules, .codex-tmp, dist, .git) to the quarantine dir or the
-#    superseded raster logo. This script and the task file name the banned
-#    strings as match literals and are the two allowed mentions.
+#    superseded raster logo. This script, the task file, and the checkpoint
+#    name the banned strings as match literals and are the allowed mentions.
 QUAR_HITS="$(grep -r -l -e '_quarantine/' -e 'emp-squircle-gold-sun\.png' . \
   --exclude-dir=node_modules --exclude-dir=.codex-tmp --exclude-dir=dist --exclude-dir=.git \
-  | grep -v -e '^\./T15a-TASK\.md$' -e '^\./tests/run-t15a\.sh$' || true)"
+  | grep -v -e '^\./T15a-TASK\.md$' -e '^\./T15a-CHECKPOINT\.md$' -e '^\./tests/run-t15a\.sh$' || true)"
 if [ -z "$QUAR_HITS" ]; then
   pass "quarantine grep (zero superseded-asset references outside the task/test files)"
 else

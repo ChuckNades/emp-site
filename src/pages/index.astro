@@ -1,7 +1,7 @@
 ---
 import Base from '../layouts/Base.astro';
 import { HUB_SLUGS, HUB_LABELS } from '../config/hubs';
-import { organizationJsonLd, mortgageBrokerJsonLd } from '../lib/jsonld';
+import { serializeJsonLd, organizationJsonLd, mortgageBrokerJsonLd } from '../lib/jsonld';
 
 const jsonLd = [organizationJsonLd(), mortgageBrokerJsonLd()];
 
@@ -22,5 +22,5 @@ const LANES = [
       ))}
     </ul>
   </section>
-  <script slot="jsonld" type="application/ld+json" set:html={JSON.stringify(jsonLd)} />
+  <script slot="jsonld" type="application/ld+json" set:html={serializeJsonLd(jsonLd)} />
 </Base>

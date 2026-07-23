@@ -1,6 +1,6 @@
 ---
 import Base from '../layouts/Base.astro';
-import { mortgageBrokerJsonLd, breadcrumbJsonLd } from '../lib/jsonld';
+import { serializeJsonLd, mortgageBrokerJsonLd, breadcrumbJsonLd } from '../lib/jsonld';
 import {
   nmls,
   nmlsConsumerAccessUrl,
@@ -27,5 +27,5 @@ const jsonLd = [
   <p>Licensed in {licensureStates.join(', ')}</p>
   <p>NMLS {nmls}</p>
   <p><a href={nmlsConsumerAccessUrl}>NMLS Consumer Access</a></p>
-  <script slot="jsonld" type="application/ld+json" set:html={JSON.stringify(jsonLd)} />
+  <script slot="jsonld" type="application/ld+json" set:html={serializeJsonLd(jsonLd)} />
 </Base>

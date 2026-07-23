@@ -184,5 +184,18 @@ else
   fail "fixture lastmods (post-fixture and post-fixture-2 must differ)"
 fi
 
+# R1 regression: overlapping slugs (`alpha` is a substring of `alpha-two`)
+# must each carry their OWN lastmod — exact route matching, never substring.
+for pair in "alpha:2026-04-11" "alpha-two:2026-05-17"; do
+  slug="${pair%%:*}"
+  want="${pair##*:}"
+  got="$(lastmod_for "$SITE/learn/$slug/")"
+  if [ -n "$got" ] && [ "${got%%T*}" = "$want" ]; then
+    pass "lastmod overlap /learn/$slug/ = $want (own date)"
+  else
+    fail "lastmod overlap /learn/$slug/ (expected own dateModified $want, got '${got:-none}')"
+  fi
+done
+
 # f. Cleanup happens via trap on exit.
 echo "All T4 checks passed."
