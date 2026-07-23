@@ -1,0 +1,11 @@
+FIXTURE sample dictation about organizing a weekly review habit
+This is a placeholder dictation used only to exercise the intake tooling.
+The speaker describes a generic routine for reviewing notes once a week.
+Nothing in this transcript is advice, and no claims are made about any topic.
+The words here exist so a script can move text from one file into another.
+Each sentence is plain, neutral, and free of any real subject matter.
+The routine involves sitting down, opening a notebook, and reading.
+After reading, the speaker writes a short list of things to follow up on.
+The list is then dated and stored in the same place every time.
+This process repeats each week without variation or special steps.
+The transcript ends with a simple statement that the habit feels sustainable.

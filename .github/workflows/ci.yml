@@ -123,6 +123,10 @@ jobs:
           LHCI_CI: "1"
           LHCI_RUNS: "5"
 
+      - name: test:t12
+        if: steps.gate.outputs.content_only == 'false'
+        run: npm run test:t12
+
       - name: test:t13
         if: steps.gate.outputs.content_only == 'false'
         run: npm run test:t13
