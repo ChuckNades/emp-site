@@ -25,25 +25,27 @@ const jsonLd = [
   <h1>Huntsville Market Report</h1>
   {huntsvilleSeed.map((series) => (
     <section aria-labelledby={`series-${huntsvilleSeed.indexOf(series)}`}>
-      <h2 id={`series-${huntsvilleSeed.indexOf(series)}`}>{series.label}</h2>
-      <table>
-        <caption>{series.label} ({series.unit})</caption>
-        <thead>
-          <tr>
-            <th scope="col">Period</th>
-            <th scope="col">Value ({series.unit})</th>
-          </tr>
-        </thead>
-        <tbody>
-          {series.rows.map((row) => (
+      <h3 id={`series-${huntsvilleSeed.indexOf(series)}`}>{series.label}</h3>
+      <div class="table-wrap">
+        <table>
+          <caption>{series.label} ({series.unit})</caption>
+          <thead>
             <tr>
-              <td>{row.period}</td>
-              <td>{formatMarketValue(series, row.value)}</td>
+              <th scope="col">Period</th>
+              <th scope="col">Value ({series.unit})</th>
             </tr>
-          ))}
-        </tbody>
-      </table>
-      <p>{marketNarrative(series)}</p>
+          </thead>
+          <tbody>
+            {series.rows.map((row) => (
+              <tr>
+                <td>{row.period}</td>
+                <td>{formatMarketValue(series, row.value)}</td>
+              </tr>
+            ))}
+          </tbody>
+        </table>
+      </div>
+      <p class="lead">{marketNarrative(series)}</p>
       <p>
         Source: <a href={series.sourceUrl}>{series.sourceName}</a> (retrieved {series.retrievedDate}).
       </p>
@@ -51,3 +53,44 @@ const jsonLd = [
   ))}
   <script slot="jsonld" type="application/ld+json" set:html={serializeJsonLd(jsonLd)} />
 </Base>
+
+<style>
+  /* V1: readable data presentation. Series sections are separated by
+     --space-6; headings render at the h3 scale (the elements above ARE h3);
+     tables sit in overflow-x containers so mobile never scrolls the page
+     horizontally, and on desktop the table is constrained to the prose
+     measure. All values resolve to tokens. */
+  section + section {
+    margin-top: var(--space-6);
+  }
+  .table-wrap {
+    overflow-x: auto;
+    max-width: var(--measure);
+  }
+  table {
+    width: 100%;
+    border-collapse: collapse;
+    font-size: var(--text-body);
+  }
+  caption {
+    caption-side: top;
+    text-align: left;
+    font-size: var(--text-h4);
+    font-weight: 700;
+    line-height: 1.2;
+    margin-bottom: var(--space-3);
+  }
+  th,
+  td {
+    text-align: left;
+    padding: var(--space-2) var(--space-3);
+    border-bottom: 1px solid var(--teal-tint-60);
+  }
+  tbody tr:nth-child(even) {
+    background: color-mix(in srgb, var(--teal) 8%, var(--surface));
+  }
+  .lead {
+    font-size: var(--text-h4);
+    line-height: 1.4;
+  }
+</style>

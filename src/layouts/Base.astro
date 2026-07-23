@@ -216,6 +216,32 @@ const NAV_LINKS = [
     padding: 0;
   }
 
+  /* V1 mobile nav: below 768px the flat nav collapses into a clean pure-CSS
+     wrap — caption-scale type, --space-2 gaps, the teal ground goes full
+     bleed, the mark row is separated from the link rows, and every link
+     keeps a >= 44px touch target. No hamburger, no JS. */
+  @media (max-width: 768px) {
+    header {
+      display: block;
+      padding: var(--space-3) var(--space-4);
+    }
+    header > a {
+      display: block;
+      padding-bottom: var(--space-3);
+      margin-bottom: var(--space-3);
+      border-bottom: 1px solid var(--teal-tint-80);
+    }
+    header nav ul {
+      gap: var(--space-2);
+      font-size: var(--text-caption);
+    }
+    header nav a {
+      display: inline-flex;
+      align-items: center;
+      min-height: 44px;
+    }
+  }
+
   /* ---- Footer: ink ground, bg text ------------------------------------ */
   footer {
     background: var(--ink);

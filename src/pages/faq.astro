@@ -20,6 +20,9 @@ const jsonLd = [
 
 <Base title="FAQ" description="FAQ">
   <h1>FAQ</h1>
+  {/* V1: sanctioned empty state (mirrors the /results/ pattern). Renders ONLY
+      when no entries exist; the moment an entry exists it stops rendering. */}
+  {faqs.length === 0 && <p>Answers are being compiled.</p>}
   {
     faqs.map((faq) => (
       <section>

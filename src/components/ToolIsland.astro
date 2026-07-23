@@ -13,11 +13,11 @@
 <section data-tool-island aria-labelledby="tool-island-heading">
   <h2 id="tool-island-heading">Analysis tool</h2>
   <form method="post">
-    <div>
+    <div class="field">
       <label for="loan-amount">Loan amount</label>
       <input id="loan-amount" name="loan-amount" type="number" />
     </div>
-    <div>
+    <div class="field">
       <label for="home-value">Home value</label>
       <input id="home-value" name="home-value" type="number" />
     </div>
@@ -25,6 +25,30 @@
   </form>
   <p aria-live="polite" data-tool-island-status></p>
 </section>
+
+<style>
+  /* V1: --surface card ground with --space-5 padding and a subtle border;
+     fields spaced --space-4 apart with labels above inputs; the button goes
+     full-width on mobile. All values resolve to tokens. */
+  [data-tool-island] {
+    background: var(--surface);
+    border: 1px solid var(--teal-tint-60);
+    padding: var(--space-5);
+  }
+  [data-tool-island] form {
+    display: grid;
+    gap: var(--space-4);
+  }
+  [data-tool-island] .field {
+    display: grid;
+    gap: var(--space-1);
+  }
+  @media (max-width: 768px) {
+    [data-tool-island] button {
+      width: 100%;
+    }
+  }
+</style>
 
 <script>
   // Token gate stub: ALWAYS rejects. The submission is intercepted and never
